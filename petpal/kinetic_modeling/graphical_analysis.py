@@ -92,6 +92,50 @@ def fit_line_to_data_using_lls_with_rsquared(xdata: np.ndarray,
 
 
 @numba.njit()
+def linear_least_squares_fit_with_stats(xdata: np.ndarray,
+                                        ydata: np.ndarray) -> tuple[float, float, float, float, float]:
+    """Fits a line to the data using least squares and explicitly computes:
+        - Fit R^2
+        - Standard error of the intercept
+        - Standard error of the slope
+
+    Args:
+        xdata (np.ndarray): X-coordinates of the data.
+        ydata (np.ndarray): Y-coordinates of the data.
+
+    Returns:
+        tuple: A tuple containing five float values: the intercept of the fitted line, the slope
+        of the fitted line, the r-squared value, the intercept standard error, and the slope
+        standard error.
+
+    See:
+        - https://mathworld.wolfram.com/LeastSquaresFitting.html
+    """
+    make_2d_matrix = _line_fitting_make_rhs_matrix_from_xdata
+    matrix = make_2d_matrix(xdata)
+    fit_ans = np.linalg.lstsq(matrix, ydata)
+
+    x_mean = np.mean(xdata)
+    y_mean = np.mean(ydata)
+
+    ss_res = fit_ans[1][0]
+    ss_tot = np.sum((y_mean - ydata) ** 2.)
+
+    n = len(xdata)
+
+    sum_square_xdiff = np.sum(xdata**2)-n*x_mean**2
+    sum_square_ydiff = np.sum(ydata**2)-n*y_mean**2
+    sum_square_xydiff = np.sum(xdata*ydata)-n*y_mean*x_mean
+
+    s = np.sqrt((sum_square_ydiff-sum_square_xydiff**2/sum_square_xdiff)/(n-2))
+
+    r_squared = 1.0 - ss_res / ss_tot
+
+    se_intercept = s*np.sqrt(1/n+np.mean(xdata)**2/sum_square_xdiff)
+    se_slope = s*sum_square_xdiff**(-0.5)
+    return fit_ans[0][0], fit_ans[0][1], r_squared, se_intercept, se_slope
+
+@numba.njit()
 def cumulative_trapezoidal_integral(xdata: np.ndarray,
                                     ydata: np.ndarray,
                                     initial: float = 0.0) -> np.ndarray:
