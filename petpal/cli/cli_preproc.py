@@ -345,10 +345,13 @@ def main():
         preproc_parser.print_help()
         raise SystemExit('Exiting without command')
 
-    if len(args.motion_target)==1:
-        motion_target = args.motion_target[0]
+    if 'motion_target' in dir(args):
+        if len(args.motion_target)==1:
+            motion_target = args.motion_target[0]
+        else:
+            motion_target = args.motion_target
     else:
-        motion_target = args.motion_target
+        motion_target = None
 
     command = str(args.command).replace('-','_')
 
