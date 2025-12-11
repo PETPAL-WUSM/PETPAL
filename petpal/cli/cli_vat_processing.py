@@ -7,6 +7,7 @@ from petpal.kinetic_modeling import graphical_analysis,rtm_analysis
 from petpal.preproc import image_operations_4d, motion_corr, register, segmentation_tools
 from petpal.preproc import symmetric_geometric_transfer_matrix as sgtm
 import petpal.preproc.regional_tac_extraction
+import petpal.preproc.standard_uptake_value
 from petpal.utils.bids_utils import gen_bids_like_dir_path, gen_bids_like_filename, gen_bids_like_filepath
 from petpal.utils.image_io import km_regional_fits_to_tsv
 from petpal.utils import useful_functions
@@ -205,7 +206,7 @@ def vat_protocol(subjstring: str,
                                              start_time=suvr_start,
                                              end_time=suvr_end,
                                              out_image_path=wss_file_path)
-        image_operations_4d.suvr(input_image_path=wss_file_path,
+        petpal.preproc.standard_uptake_value.suvr(input_image_path=wss_file_path,
                                  out_image_path=suvr_file_path,
                                  segmentation_image_path=vat_wm_ref_segmentation_file,
                                  ref_region=1,
