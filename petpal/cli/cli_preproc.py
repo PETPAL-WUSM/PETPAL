@@ -95,8 +95,6 @@ import argparse
 import ants
 
 
-
-from ..utils import useful_functions
 from ..preproc import (image_operations_4d,
                        motion_corr,
                        register,
@@ -117,7 +115,7 @@ Examples:
   - Write tacs, deprecated:
     petpal-preproc write-tacs-old -i /path/to/input_img.nii.gz -o /tmp/petpal_tacs --segmentation /path/to/segmentation.nii.gz --label-map-path /path/to/dseg.tsv
   - Half life weighted sum of series:
-    petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --half-life 6584 --start-time 1800 --end-time 7200
+    petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --start-time 1800 --end-time 7200
   - SUVR:
     petpal-preproc suvr -i /path/to/input_img.nii.gz -o petpal_suvr.nii.gz --segmentation /path/to/segmentation.nii.gz --ref-region 1
   - Gauss blur:
@@ -164,7 +162,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument('-o',
                         '--out-img',
-                        default='petpal_wss_output.nii.gz',
+                        default='petpal_preproc_output.nii.gz',
                         help='Output image filename')
     parser.add_argument('-i', '--input-img',required=True,help='Path to input image.',type=str)
 
@@ -188,10 +186,6 @@ def _generate_args() -> argparse.ArgumentParser:
     parser_wss = subparsers.add_parser('weighted-series-sum',
                                        help='Half-life weighted sum of 4D PET series.')
     _add_common_args(parser_wss)
-    parser_wss.add_argument('--half-life',
-                            required=True,
-                            help='Half life of radioisotope in seconds.',
-                            type=float)
     parser_wss.add_argument('--start-time',
                             required=False,
                             help='Start time of sum in seconds.',
@@ -375,12 +369,10 @@ def main():
 
     match command:
         case 'weighted_series_sum':
-            useful_functions.weighted_series_sum(input_image_4d_path=args.input_img,
-                                                 out_image_path=args.out_img,
-                                                 half_life=args.half_life,
-                                                 start_time=args.start_time,
-                                                 end_time=args.end_time,
-                                                 verbose=True)
+            standard_uptake_value.weighted_sum_for_suv(input_image_4d_path=args.input_img,
+                                                       out_image_path=args.out_img,
+                                                       start_time=args.start_time,
+                                                       end_time=args.end_time)
         case 'auto_crop':
             image_operations_4d.SimpleAutoImageCropper(input_image_path=args.input_img,
                                                     out_image_path=args.out_img,
