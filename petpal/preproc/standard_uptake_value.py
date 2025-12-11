@@ -14,11 +14,25 @@ from petpal.utils import image_io
 import ants
 
 
-def wss_2(input_image_path: str,
-          output_image_path: str | None,
-          start_time: float=0,
-          end_time: float=-1):
-    """Simplify io for wss"""
+def weighted_sum_for_suv(input_image_path: str,
+                         output_image_path: str | None,
+                         start_time: float=0,
+                         end_time: float=-1) -> ants.ANTsImage:
+    """Function that calculates the weighted series sum for a PET image specifically for
+    calculating the standard uptake value (SUV) of the image.
+    
+    Args:
+        input_image_path (str): Path to a 4D PET image which we calculate the sum on.
+        output_image_path (str): Path to which output image is saved. If None, returns
+            calculated image without saving.
+        start_time: Time in seconds from the start of the scan from which to begin sum calculation.
+            Only frames after selected time will be included in the sum.
+        end_time: Time in seconds from the start of the scan from which to end sum calculation.
+            Only frames before selected time will be included in the sum.
+            
+    Returns:
+        weighted_sum_img (ants.ANTsImage): 3D image resulting from the sum calculation.
+    """
     half_life = get_half_life_from_nifti(image_path=input_image_path)
     if half_life <= 0:
         raise ValueError('(ImageOps4d): Radioisotope half life is zero or negative.')
@@ -73,8 +87,8 @@ def suv(input_image_path: str,
         dose: float):
     """Compute standard uptake value (SUV) over a pet image. Calculate the weighted image sum
     then divide by the dose and multiplying by the weight of the participant."""
-    wss_img = wss_2(input_image_path=input_image_path,
-                    output_image_path=None)
+    wss_img = weighted_sum_for_suv(input_image_path=input_image_path,
+                                   output_image_path=None)
     suv_img = wss_img / dose * weight
     return suv_img
 
