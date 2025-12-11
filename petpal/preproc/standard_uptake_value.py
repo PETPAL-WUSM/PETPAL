@@ -26,9 +26,10 @@ def weighted_sum_for_suv(input_image_path: str,
         output_image_path (str): Path to which output image is saved. If None, returns
             calculated image without saving.
         start_time: Time in seconds from the start of the scan from which to begin sum calculation.
-            Only frames after selected time will be included in the sum.
+            Only frames after selected time will be included in the sum. Default 0.
         end_time: Time in seconds from the start of the scan from which to end sum calculation.
-            Only frames before selected time will be included in the sum.
+            Only frames before selected time will be included in the sum. If -1, use all frames
+            after `start_time` in the calculation. Default -1.
             
     Returns:
         weighted_sum_img (ants.ANTsImage): 3D image resulting from the sum calculation.
@@ -49,22 +50,19 @@ def weighted_sum_for_suv(input_image_path: str,
         raise ValueError("Neither 'DecayCorrectionFactor' nor 'DecayFactor' exist in meta-data "
                          "file")
 
-    if end_time==-1:
-        pet_series_adjusted = pet_img
-        frame_start_adjusted = frame_start
-        frame_duration_adjusted = frame_duration
-        decay_correction_adjusted = decay_correction
-    else:
-        scan_start = frame_start[0]
-        nearest_frame = nearest_frame_to_timepoint(frame_times=frame_start)
-        calc_first_frame = int(nearest_frame(start_time+scan_start))
-        calc_last_frame = int(nearest_frame(end_time+scan_start))
-        if calc_first_frame==calc_last_frame:
-            calc_last_frame += 1
-        pet_series_adjusted = pet_img[:,:,:,calc_first_frame:calc_last_frame]
-        frame_start_adjusted = frame_start[calc_first_frame:calc_last_frame]
-        frame_duration_adjusted = frame_duration[calc_first_frame:calc_last_frame]
-        decay_correction_adjusted = decay_correction[calc_first_frame:calc_last_frame]
+    last_frame_time = frame_start[-1]
+    if end_time!=-1:
+        last_frame_time = end_time
+    scan_start = frame_start[0]
+    nearest_frame = nearest_frame_to_timepoint(frame_times=frame_start)
+    calc_first_frame = int(nearest_frame(start_time+scan_start))
+    calc_last_frame = int(nearest_frame(last_frame_time+scan_start))
+    if calc_first_frame==calc_last_frame:
+        calc_last_frame += 1
+    pet_series_adjusted = pet_img[:,:,:,calc_first_frame:calc_last_frame]
+    frame_start_adjusted = frame_start[calc_first_frame:calc_last_frame]
+    frame_duration_adjusted = frame_duration[calc_first_frame:calc_last_frame]
+    decay_correction_adjusted = decay_correction[calc_first_frame:calc_last_frame]
 
     weighted_sum_arr = weighted_sum_computation(frame_duration=frame_duration_adjusted,
                                                 half_life=half_life,
