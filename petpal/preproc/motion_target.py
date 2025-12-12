@@ -81,8 +81,8 @@ def determine_motion_target(motion_target_option: str | tuple | list,
         out_image_file = tempfile.mkstemp(suffix='_wss.nii.gz')[1]
         weighted_sum_for_suv(input_image_path=input_image_path,
                                 output_image_path=out_image_file,
-                                start_time=start_time,
-                                end_time=end_time)
+                                start_time=float(start_time),
+                                end_time=float(end_time))
 
         return out_image_file
 
