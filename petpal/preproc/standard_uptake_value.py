@@ -2,17 +2,14 @@
 Module for functions calculating standard uptake value (SUV) and related measures, such as standard
 uptake value ratio (SUVR).
 """
+import ants
+
 from ..utils.stats import mean_value_in_region
 from ..utils.math_lib import weighted_sum_computation
 from ..utils.useful_functions import gen_3d_img_from_timeseries, nearest_frame_to_timepoint
 from ..utils.image_io import (get_half_life_from_nifti,
                               load_metadata_for_nifti_with_same_filename,
                               safe_copy_meta)
-from .image_operations_4d import weighted_series_sum
-import numpy as np
-
-
-import ants
 
 
 def weighted_sum_for_suv(input_image_path: str,
@@ -105,46 +102,47 @@ def suv(input_image_path: str,
 def suvr(input_image_path: str,
          output_image_path: str | None,
          segmentation_image_path: str,
-         ref_region: int | list[int]) -> ants.ANTsImage:
+         ref_region: int | list[int],
+         start_time: float,
+         end_time: float) -> ants.ANTsImage:
     """
     Computes an ``SUVR`` (Standard Uptake Value Ratio) by taking the average of
     an input image within a reference region, and dividing the input image by
     said average value.
 
     Args:
-        input_image_path (str): Path to 3D weighted series sum or other
-            parametric image on which we compute SUVR.
+        input_image_path (str): Path to 4D PET image.
         output_image_path (str): Path to output image file which is written to. If None, no output is written.
         segmentation_image_path (str): Path to segmentation image, which we use
             to compute average uptake value in the reference region.
         ref_region (int): Region or list of region mappings over which to compute average SUV. If a
             list is provided, combines all regions in the list as one reference region.
+        start_time: Time in seconds from the start of the scan from which to begin sum calculation.
+            Only frames after selected time will be included in the sum. Default 0.
+        end_time: Time in seconds from the start of the scan from which to end sum calculation.
+            Only frames before selected time will be included in the sum. If -1, use all frames
+            after `start_time` in the calculation. Default -1.
 
     Returns:
         ants.ANTsImage: SUVR parametric image
     """
-    suv_img = ants.image_read(filename=input_image_path)
-    suv_arr = suv_img.numpy()
+    sum_img = weighted_sum_for_suv(input_image_path=input_image_path,
+                                   output_image_path=None,
+                                   start_time=start_time,
+                                   end_time=end_time)
     segmentation_img = ants.image_read(filename=segmentation_image_path,
                                         pixeltype='unsigned int')
 
-    if len(suv_arr.shape)!=3:
-        raise ValueError("SUVR input image is not 3D. If your image is dynamic, try running 'weighted_series_sum'"
-                         " first.")
-
-    ref_region_avg = mean_value_in_region(input_img=suv_img,
+    ref_region_avg = mean_value_in_region(input_img=sum_img,
                                           seg_img=segmentation_img,
                                           mapping=ref_region)
 
-    suvr_arr = suv_arr / ref_region_avg
-
-    out_img = ants.from_numpy_like(data=suvr_arr,
-                                   image=suv_img)
+    suvr_img = sum_img / ref_region_avg
 
     if output_image_path is not None:
-        ants.image_write(image=out_img,
+        ants.image_write(image=suvr_img,
                          filename=output_image_path)
         safe_copy_meta(input_image_path=input_image_path,
                        out_image_path=output_image_path)
 
-    return out_img
+    return suvr_img
