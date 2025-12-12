@@ -4,7 +4,7 @@ import os
 import tempfile
 import ants
 
-from .image_operations_4d import get_average_of_timeseries
+from ..utils.useful_functions import get_average_of_timeseries
 from .standard_uptake_value import weighted_sum_for_suv
 
 

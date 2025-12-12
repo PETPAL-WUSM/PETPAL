@@ -443,3 +443,16 @@ def nearest_frame_to_timepoint(frame_times: np.ndarray) -> Callable:
                                   bounds_error=False,
                                   fill_value='extrapolate')
     return nearest_frame_func
+
+
+def get_average_of_timeseries(input_image: ants.ANTsImage):
+    """
+    Get average of a 4D ANTsImage and return as a 3D ANTsImage.
+    """
+    assert len(input_image.shape) == 4, "Input image must be 4D"
+    mean_array = input_image.mean(axis=-1)
+    mean_image = ants.from_numpy(data=mean_array,
+                                 origin=input_image.origin[:-1],
+                                 spacing=input_image.spacing[:-1],
+                                 direction=input_image.direction[:-1,:-1])
+    return mean_image

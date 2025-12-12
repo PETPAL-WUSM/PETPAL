@@ -26,9 +26,8 @@ import nibabel
 import numpy as np
 from scipy.ndimage import center_of_mass
 
-from petpal.preproc.motion_target import determine_motion_target
+from .motion_target import determine_motion_target
 
-from ..utils.useful_functions import weighted_series_sum
 from ..utils import image_io, math_lib
 from .decay_correction import undo_decay_correction, decay_correct
 
@@ -347,19 +346,6 @@ def binarize_image_with_threshold(input_image_numpy: np.ndarray,
     bounded_image_where = (input_image_numpy > lower_bound) & (input_image_numpy < upper_bound)
     bounded_image[bounded_image_where] = 1
     return bounded_image
-
-
-def get_average_of_timeseries(input_image: ants.ANTsImage):
-    """
-    Get average of a 4D ANTsImage and return as a 3D ANTsImage.
-    """
-    assert len(input_image.shape) == 4, "Input image must be 4D"
-    mean_array = input_image.mean(axis=-1)
-    mean_image = ants.from_numpy(data=mean_array,
-                                 origin=input_image.origin[:-1],
-                                 spacing=input_image.spacing[:-1],
-                                 direction=input_image.direction[:-1,:-1])
-    return mean_image
 
 
 def gauss_blur(input_image_path: str,
