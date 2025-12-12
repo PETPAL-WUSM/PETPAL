@@ -1,4 +1,5 @@
 """Tools for preparing PET data for kinetic modeling and visualization"""
+from . import motion_target
 from . import image_operations_4d
 from . import motion_corr
 from . import partial_volume_corrections

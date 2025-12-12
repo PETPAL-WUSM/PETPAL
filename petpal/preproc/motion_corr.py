@@ -8,7 +8,7 @@ import ants
 import numpy as np
 
 
-from .image_operations_4d import determine_motion_target
+from .motion_target import determine_motion_target
 from ..utils import image_io
 from ..utils.scan_timing import ScanTimingInfo, get_window_index_pairs_for_image
 from ..utils.useful_functions import weighted_series_sum_over_window_indecies

@@ -10,7 +10,7 @@ import nibabel
 import numpy as np
 from nibabel.processing import resample_from_to
 
-from .image_operations_4d import determine_motion_target
+from .motion_target import determine_motion_target
 from ..utils import image_io
 from ..utils.useful_functions import check_physical_space_for_ants_image_pair
 
