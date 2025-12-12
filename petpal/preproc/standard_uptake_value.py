@@ -112,7 +112,8 @@ def suvr(input_image_path: str,
 
     Args:
         input_image_path (str): Path to 4D PET image.
-        output_image_path (str): Path to output image file which is written to. If None, no output is written.
+        output_image_path (str): Path to output image file which is written to. If None, no output
+            is written.
         segmentation_image_path (str): Path to segmentation image, which we use
             to compute average uptake value in the reference region.
         ref_region (int): Region or list of region mappings over which to compute average SUV. If a
