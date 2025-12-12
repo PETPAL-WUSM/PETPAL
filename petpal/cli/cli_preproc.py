@@ -339,12 +339,12 @@ def _generate_args() -> argparse.ArgumentParser:
 
     parser_suv = subparsers.add_parser('suv',help='Standard Uptake Value (SUV) calculation')
     _add_common_args(parser_suv)
-    parser_suv.add_argument('-w'
+    parser_suv.add_argument('-w',
                             '--weight',
                             required=True,
                             help='Weight of the participant in kg',
                             type=float)
-    parser_suv.add_argument('-d'
+    parser_suv.add_argument('-d',
                             '--dose',
                             required=True,
                             help='Dose of radiotracer injected in MBQ/mL',
