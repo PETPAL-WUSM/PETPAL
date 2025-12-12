@@ -427,7 +427,7 @@ def main():
                                         verbose=True,
                                         use_fwhm=True)
         case 'suvr':
-            image_operations_4d.suvr(input_image_path=args.input_img,
+            standard_uptake_value.suvr(input_image_path=args.input_img,
                                      out_image_path=args.out_img,
                                      segmentation_image_path=args.segmentation,
                                      ref_region=args.ref_region)

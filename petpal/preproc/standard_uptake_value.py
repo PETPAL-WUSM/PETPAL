@@ -67,7 +67,7 @@ def weighted_sum_for_suv(input_image_path: str,
 
     weighted_sum_arr = weighted_sum_computation(frame_duration=frame_duration_adjusted,
                                                 half_life=half_life,
-                                                pet_img=pet_series_adjusted,
+                                                pet_series=pet_series_adjusted,
                                                 frame_start=frame_start_adjusted,
                                                 decay_correction=decay_correction_adjusted)
     weighted_sum_img = ants.from_numpy_like(weighted_sum_arr,gen_3d_img_from_timeseries(pet_img))
@@ -75,7 +75,7 @@ def weighted_sum_for_suv(input_image_path: str,
     if output_image_path is not None:
         ants.image_write(weighted_sum_img, output_image_path)
         safe_copy_meta(input_image_path=input_image_path,
-                       output_image_path=output_image_path)
+                       out_image_path=output_image_path)
 
     return weighted_sum_img
 
@@ -97,7 +97,7 @@ def suv(input_image_path: str,
     if output_image_path is not None:
         ants.image_write(suv_img, output_image_path)
         safe_copy_meta(input_image_path=input_image_path,
-                       output_image_path=output_image_path)
+                       out_image_path=output_image_path)
 
     return suv_img
 
@@ -144,7 +144,7 @@ def suvr(input_image_path: str,
     if output_image_path is not None:
         ants.image_write(image=out_img,
                          filename=output_image_path)
-        image_io.safe_copy_meta(input_image_path=input_image_path,
-                                output_image_path=output_image_path)
+        safe_copy_meta(input_image_path=input_image_path,
+                       out_image_path=output_image_path)
 
     return out_img
