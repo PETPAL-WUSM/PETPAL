@@ -378,8 +378,8 @@ def main():
 
     match command:
         case 'weighted_series_sum':
-            standard_uptake_value.weighted_sum_for_suv(input_image_4d_path=args.input_img,
-                                                       out_image_path=args.out_img,
+            standard_uptake_value.weighted_sum_for_suv(input_image_path=args.input_img,
+                                                       output_image_path=args.out_img,
                                                        start_time=args.start_time,
                                                        end_time=args.end_time)
         case 'auto_crop':
