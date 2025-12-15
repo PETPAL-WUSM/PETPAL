@@ -82,7 +82,7 @@ def suv(input_image_path: str,
         weight: float,
         dose: float,
         start_time: float,
-        end_time: float):
+        end_time: float) -> ants.ANTsImage:
     """Compute standard uptake value (SUV) over a pet image. Calculate the weighted image sum
     then divide by the dose and multiplying by the weight of the participant.
 
