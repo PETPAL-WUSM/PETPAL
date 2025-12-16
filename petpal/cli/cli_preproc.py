@@ -33,7 +33,7 @@ Examples:
 
    .. code-block:: bash
 
-       petpal-preproc register-pet -i /path/to/input_img.nii.gz -o petpal_reg.nii.gz --motion-target 0 600 --anatomical /path/to/anat.nii.gz
+       petpal-preproc register-pet -i /path/to/input_img.nii.gz -o petpal_reg.nii.gz --motion-target 0 600 --anatomical /path/to/anat.nii.gz --half-life 6584
 
 
     * Write regional tacs:
@@ -54,7 +54,7 @@ Examples:
 
    .. code-block:: bash
 
-       petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --start-time 1800 --end-time 7200
+       petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --half-life 6584 --start-time 1800 --end-time 7200
 
 
    * SUVR Image:
@@ -95,11 +95,8 @@ import argparse
 import ants
 
 
-from ..preproc import (image_operations_4d,
-                       motion_corr,
-                       register,
-                       regional_tac_extraction,
-                       standard_uptake_value)
+from ..utils import useful_functions
+from ..preproc import image_operations_4d, motion_corr, register, regional_tac_extraction
 
 
 _PREPROC_EXAMPLES_ = r"""
@@ -109,13 +106,13 @@ Examples:
   - Windowed moco:
     petpal-preproc windowed-motion-corr -i /path/to/input_img.nii.gz -o petpal_moco.nii.gz --window-size 120 --transform-type QuickRigid
   - Register to anatomical:
-    petpal-preproc register-pet -i /path/to/input_img.nii.gz -o petpal_reg.nii.gz --motion-target 0 600 --anatomical /path/to/anat.nii.gz
+    petpal-preproc register-pet -i /path/to/input_img.nii.gz -o petpal_reg.nii.gz --motion-target 0 600 --anatomical /path/to/anat.nii.gz --half-life 6584
   - Write regional tacs:
     petpal-preproc write-tacs -i /path/to/input_img.nii.gz -p sub-001 -o /tmp/petpal_tacs -s /path/to/segmentation.nii.gz -l perlcyno -x
   - Write tacs, deprecated:
     petpal-preproc write-tacs-old -i /path/to/input_img.nii.gz -o /tmp/petpal_tacs --segmentation /path/to/segmentation.nii.gz --label-map-path /path/to/dseg.tsv
   - Half life weighted sum of series:
-    petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --start-time 1800 --end-time 7200
+    petpal-preproc weighted-series-sum -i /path/to/input_img.nii.gz -o petpal_wss.nii.gz --half-life 6584 --start-time 1800 --end-time 7200
   - SUVR:
     petpal-preproc suvr -i /path/to/input_img.nii.gz -o petpal_suvr.nii.gz --segmentation /path/to/segmentation.nii.gz --ref-region 1
   - Gauss blur:
@@ -124,8 +121,6 @@ Examples:
     petpal-preproc rescale-image -i /path/to/input_img.nii.gz -o petpal_rescale.nii.gz --scale-factor 1000
   - Warp to atlas:
     petpal-preproc warp-pet-atlas -i /path/to/input_img.nii.gz -o petpal_reg-atlas.nii.gz --anatomical /path/to/anat.nii.gz --reference-atlas /path/to/atlas.nii.gz
-  - SUV:
-    petpal-preproc suv -i /path/to/input_img.nii.gz -o petpal_suv.nii.gz --weight 75 --dose 250 --start-time 1200 --end-time 3600
 """
 
 
@@ -164,7 +159,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     """
     parser.add_argument('-o',
                         '--out-img',
-                        default='petpal_preproc_output.nii.gz',
+                        default='petpal_wss_output.nii.gz',
                         help='Output image filename')
     parser.add_argument('-i', '--input-img',required=True,help='Path to input image.',type=str)
 
@@ -188,6 +183,10 @@ def _generate_args() -> argparse.ArgumentParser:
     parser_wss = subparsers.add_parser('weighted-series-sum',
                                        help='Half-life weighted sum of 4D PET series.')
     _add_common_args(parser_wss)
+    parser_wss.add_argument('--half-life',
+                            required=True,
+                            help='Half life of radioisotope in seconds.',
+                            type=float)
     parser_wss.add_argument('--start-time',
                             required=False,
                             help='Start time of sum in seconds.',
@@ -216,6 +215,9 @@ def _generate_args() -> argparse.ArgumentParser:
                             required=True)
     parser_moco.add_argument('--transform-type', required=False,default='Rigid',
                              help='Transformation type (Rigid or Affine).',type=str)
+    parser_moco.add_argument('--half-life', required=False,
+                             help='Half life of radioisotope in seconds.'
+                                  'Required for some motion targets.',type=float)
 
     parser_tac = subparsers.add_parser('write-tacs',
                                        help='Write ROI TACs from 4D PET using segmentation masks.')
@@ -277,19 +279,9 @@ def _generate_args() -> argparse.ArgumentParser:
                             help='Path to segmentation image in anatomical space.')
     parser_suvr.add_argument('-r',
                              '--ref-region',
-                             help='Reference region to normalize SUVR to. List multiple regions to '
-                                  'combine as one reference.',
+                             help='Reference region to normalize SUVR to.',
                              required=True,
-                             type=int,
-                             nargs='+')
-    parser_suvr.add_argument('--start-time',
-                            required=True,
-                            help='Start time for SUVR calculation in seconds from scan start',
-                            type=float)
-    parser_suvr.add_argument('--end-time',
-                            required=True,
-                            help='End time for SUVR calculation in seconds from scan start',
-                            type=float)
+                             type=int)
 
     parser_blur = subparsers.add_parser('gauss-blur',help='Perform 3D gaussian blurring.')
     _add_common_args(parser_blur)
@@ -336,27 +328,9 @@ def _generate_args() -> argparse.ArgumentParser:
                             help="Motion target option. Can be an image path, "
                                  "'weighted_series_sum' or a tuple (i.e. '-t 0 600' for first "
                                  "ten minutes).")
+    parser_reg.add_argument('-l', '--half-life', help='Half life of radioisotope in seconds.',
+                            type=float)
 
-    parser_suv = subparsers.add_parser('suv',help='Standard Uptake Value (SUV) calculation')
-    _add_common_args(parser_suv)
-    parser_suv.add_argument('-w',
-                            '--weight',
-                            required=True,
-                            help='Weight of the participant in kg',
-                            type=float)
-    parser_suv.add_argument('-d',
-                            '--dose',
-                            required=True,
-                            help='Dose of radiotracer injected in MBq',
-                            type=float)
-    parser_suv.add_argument('--start-time',
-                            required=True,
-                            help='Start time for SUV calculation in seconds from scan start',
-                            type=float)
-    parser_suv.add_argument('--end-time',
-                            required=True,
-                            help='End time for SUV calculation in seconds from scan start',
-                            type=float)
     return parser
 
 
@@ -383,27 +357,31 @@ def main():
 
     match command:
         case 'weighted_series_sum':
-            standard_uptake_value.weighted_sum_for_suv(input_image_path=args.input_img,
-                                                       output_image_path=args.out_img,
-                                                       start_time=args.start_time,
-                                                       end_time=args.end_time)
+            useful_functions.weighted_series_sum(input_image_4d_path=args.input_img,
+                                                 out_image_path=args.out_img,
+                                                 half_life=args.half_life,
+                                                 start_time=args.start_time,
+                                                 end_time=args.end_time,
+                                                 verbose=True)
         case 'auto_crop':
             image_operations_4d.SimpleAutoImageCropper(input_image_path=args.input_img,
                                                     out_image_path=args.out_img,
                                                     thresh_val=args.thresh_val,
                                                     verbose=True)
         case 'motion_correction':
-            motion_corr.motion_corr(input_image_path=args.input_img,
+            motion_corr.motion_corr(input_image_4d_path=args.input_img,
                                     out_image_path=args.out_img,
                                     motion_target_option=motion_target,
                                     verbose=True,
-                                    type_of_transform=args.transform_type)
+                                    type_of_transform=args.transform_type,
+                                    half_life=args.half_life)
         case 'register_pet':
             register.register_pet(input_reg_image_path=args.input_img,
                                 out_image_path=args.out_img,
                                 reference_image_path=args.anatomical,
                                 motion_target_option=motion_target,
-                                verbose=True)
+                                verbose=True,
+                                half_life=args.half_life)
         case 'write_tacs_old':
             regional_tac_extraction.write_tacs(input_image_path=args.input_img,
                                             out_tac_dir=args.out_tac_dir,
@@ -430,12 +408,10 @@ def main():
                                         verbose=True,
                                         use_fwhm=True)
         case 'suvr':
-            standard_uptake_value.suvr(input_image_path=args.input_img,
-                                       output_image_path=args.out_img,
-                                       segmentation_image_path=args.segmentation,
-                                       ref_region=args.ref_region,
-                                       start_time=args.start_time,
-                                       end_time=args.end_time)
+            image_operations_4d.suvr(input_image_path=args.input_img,
+                                     out_image_path=args.out_img,
+                                     segmentation_image_path=args.segmentation,
+                                     ref_region=args.ref_region)
         case 'windowed_motion_corr':
             motion_corr.windowed_motion_corr_to_target(input_image_path=args.input_img,
                                                     out_image_path=args.out_img,
@@ -447,13 +423,6 @@ def main():
             out_img = image_operations_4d.rescale_image(input_image=input_img,
                                                         rescale_constant=args.scale_factor)
             ants.image_write(image=out_img, filename=args.out_img)
-        case 'suv':
-            standard_uptake_value.suv(input_image_path=args.input_img,
-                                      output_image_path=args.out_img,
-                                      start_time=args.start_time,
-                                      end_time=args.end_time,
-                                      weight=args.weight,
-                                      dose=args.dose)
 
 if __name__ == "__main__":
     main()

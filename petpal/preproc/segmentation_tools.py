@@ -14,7 +14,7 @@ import nibabel
 from nibabel import processing
 import pandas as pd
 
-from ..utils.useful_functions import gen_nd_image_based_on_image_list
+from . import motion_corr
 from ..utils import math_lib
 
 
@@ -203,7 +203,7 @@ def replace_probabilistic_region(segmentation_numpy: np.ndarray,
     return segmentation_numpy
 
 
-def resample_segmentation(input_image_path: str,
+def resample_segmentation(input_image_4d_path: str,
                           segmentation_image_path: str,
                           out_seg_path: str,
                           verbose: bool):
@@ -215,7 +215,7 @@ def resample_segmentation(input_image_path: str,
     PET and ROI data are registered to the same space, but have different resolutions.
 
     Args:
-        input_image_path (str): Path to a .nii or .nii.gz file containing a 4D
+        input_image_4d_path (str): Path to a .nii or .nii.gz file containing a 4D
             PET image, registered to anatomical space, to which the segmentation file is resampled.
         segmentation_image_path (str): Path to a .nii or .nii.gz file containing a 3D segmentation
             image, where integer indices label specific regions.
@@ -223,7 +223,7 @@ def resample_segmentation(input_image_path: str,
             image is written.
         verbose (bool): Set to ``True`` to output processing information.
     """
-    pet_image = nibabel.load(input_image_path)
+    pet_image = nibabel.load(input_image_4d_path)
     seg_image = nibabel.load(segmentation_image_path)
     pet_series = pet_image.get_fdata()
     image_first_frame = pet_series[:, :, :, 0]
@@ -363,7 +363,7 @@ def gw_segmentation(freesurfer_path: str,
                              origin=freesurfer.origin,
                              spacing=freesurfer.spacing,
                              direction=freesurfer.direction)
-    gw_map_template = gen_nd_image_based_on_image_list([gm_img, wm_img])
+    gw_map_template = motion_corr.gen_nd_image_based_on_image_list([gm_img, wm_img])
     gw_map_4d = ants.list_to_ndimage(image=gw_map_template,image_list=[gm_img,wm_img])
     ants.image_write(gw_map_4d,output_path)
 

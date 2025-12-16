@@ -1,7 +1,6 @@
 """
 Module to handle abstracted functionalities
 """
-from collections.abc import Callable
 import os
 import nibabel
 import numpy as np
@@ -89,7 +88,7 @@ def build_label_map(region_names: list[str]):
     return abbreviated_names
 
 
-def weighted_series_sum(input_image_path: str,
+def weighted_series_sum(input_image_4d_path: str,
                         out_image_path: str,
                         half_life: float,
                         verbose: bool=False,
@@ -125,7 +124,7 @@ def weighted_series_sum(input_image_path: str,
     # TODO: Determine half_life from .json rather than passing as argument.
 
     Args:
-        input_image_path (str): Path to a .nii or .nii.gz file containing a 4D
+        input_image_4d_path (str): Path to a .nii or .nii.gz file containing a 4D
             PET image on which the weighted sum is calculated. Assume a metadata
             file exists with the same path and file name, but with extension .json,
             and follows BIDS standard.
@@ -148,8 +147,8 @@ def weighted_series_sum(input_image_path: str,
     """
     if half_life <= 0:
         raise ValueError('(ImageOps4d): Radioisotope half life is zero or negative.')
-    pet_meta = image_io.load_metadata_for_nifti_with_same_filename(input_image_path)
-    pet_image = nibabel.load(input_image_path)
+    pet_meta = image_io.load_metadata_for_nifti_with_same_filename(input_image_4d_path)
+    pet_image = nibabel.load(input_image_4d_path)
     pet_series = pet_image.get_fdata()
     frame_start = pet_meta['FrameTimesStart']
     frame_duration = pet_meta['FrameDuration']
@@ -203,7 +202,7 @@ def weighted_series_sum(input_image_path: str,
         nibabel.save(pet_sum_image, out_image_path)
         if verbose:
             print(f"(ImageOps4d): weighted sum image saved to {out_image_path}")
-        image_io.safe_copy_meta(input_image_path=input_image_path,
+        image_io.safe_copy_meta(input_image_path=input_image_4d_path,
                                 out_image_path=out_image_path)
 
     return image_weighted_sum
@@ -432,103 +431,3 @@ def get_frame_from_timeseries(input_img: ants.ANTsImage, frame: int) -> ants.ANT
     ants.set_direction( img_3d, subdirection )
 
     return img_3d
-
-
-def nearest_frame_to_timepoint(frame_times: np.ndarray) -> Callable[[float],float]:
-    """Returns a step function that gets the index of the frame closest to a provided timepoint
-    based on an array of frame times, such as the frame starts or reference times.
-
-    Args:
-        frame_times (np.ndarray): The frame times on which to generate the step function.
-
-    Returns:
-        nearest_frame_func (Callable[[float],float]): A function that returns the time closest to
-            the provided timepoint.
-    """
-    nearest_frame_func = interp1d(x=frame_times,
-                                  y=range(len(frame_times)),
-                                  kind='nearest',
-                                  bounds_error=False,
-                                  fill_value='extrapolate')
-    return nearest_frame_func
-
-
-def get_average_of_timeseries(input_image: ants.ANTsImage) -> ants.ANTsImage:
-    """
-    Get average of a 4D ANTsImage and return as a 3D ANTsImage.
-
-    Args:
-        input_image (ants.ANTsImage): 4D PET image over which to compute timeseries average.
-
-    Returns:
-        mean_image (ants.ANTsImage): 3D mean over time in the PET image.
-    """
-    assert len(input_image.shape) == 4, "Input image must be 4D"
-    mean_array = input_image.mean(axis=-1)
-    mean_image = ants.from_numpy(data=mean_array,
-                                 origin=input_image.origin[:-1],
-                                 spacing=input_image.spacing[:-1],
-                                 direction=input_image.direction[:-1,:-1])
-    return mean_image
-
-
-def gen_nd_image_based_on_image_list(image_list: list[ants.ANTsImage]) -> ants.ANTsImage:
-    r"""
-    Generate a 4D ANTsImage based on a list of 3D ANTsImages.
-
-    This function takes a list of 3D ANTsImages and constructs a new 4D ANTsImage,
-    where the additional dimension represents the number of frames (3D images) in the list.
-    The 4D image retains the spacing, origin, direction, and shape properties of the 3D images,
-    with appropriate modifications for the additional dimension.
-
-    Args:
-        image_list (list[ants.core.ants_image.ANTsImage]):
-            List of 3D ANTsImage objects to be combined into a 4D image.
-            The list must contain at least one image, and all images must have the same
-            dimensions and properties.
-
-    Returns:
-        ants.ANTsImage:
-            A 4D ANTsImage constructed from the input list of 3D images. The additional
-            dimension corresponds to the number of frames (length of the image list).
-
-    Raises:
-        AssertionError: If the `image_list` is empty or if the images in the list are not 3D.
-
-    See Also
-        * :func:`petpal.preproc.motion_corr.motion_corr_frame_list_to_t1`
-
-    Example:
-
-        .. code-block:: python
-
-
-            import ants
-            image1 = ants.image_read('frame1.nii.gz')
-            image2 = ants.image_read('frame2.nii.gz')
-            image_list = [image1, image2]
-            result = _gen_nd_image_based_on_image_list(image_list)
-            print(result.dimension)  # 4
-            image4d = ants.list_to_ndimage(result, image_list)
-
-    """
-    assert len(image_list) > 0
-    assert image_list[0].dimension == 3
-
-    num_frames = len(image_list)
-    spacing_3d = image_list[0].spacing
-    origin_3d = image_list[0].origin
-    shape_3d = image_list[0].shape
-    direction_3d = image_list[0].direction
-
-    direction_4d = np.eye(4)
-    direction_4d[:3, :3] = direction_3d
-    spacing_4d = (*spacing_3d, 1.0)
-    origin_4d = (*origin_3d, 0.0)
-    shape_4d = (*shape_3d, num_frames)
-
-    tmp_image = ants.make_image(imagesize=shape_4d,
-                                spacing=spacing_4d,
-                                origin=origin_4d,
-                                direction=direction_4d)
-    return tmp_image

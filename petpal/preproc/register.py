@@ -10,7 +10,7 @@ import nibabel
 import numpy as np
 from nibabel.processing import resample_from_to
 
-from .motion_target import determine_motion_target
+from .image_operations_4d import determine_motion_target
 from ..utils import image_io
 from ..utils.useful_functions import check_physical_space_for_ants_image_pair
 
@@ -29,10 +29,15 @@ def register_pet_to_pet(input_image_path: str,
     Returns:
         ants.ANTsImage: ANTsImage containing input image registered to reference image.
     """
+
+    half_life = image_io.get_half_life_from_nifti(image_path=input_image_path)
+
     wss_input = determine_motion_target(motion_target_option='weighted_series_sum',
-                                        input_image_path=input_image_path)
+                                        input_image_4d_path=input_image_path,
+                                        half_life=half_life)
     wss_reference = determine_motion_target(motion_target_option='weighted_series_sum',
-                                            input_image_path=reference_pet_image_path)
+                                            input_image_4d_path=reference_pet_image_path,
+                                            half_life=half_life)
 
     wss_input_ants = ants.image_read(wss_input)
     wss_reference_ants = ants.image_read(wss_reference)
@@ -62,6 +67,7 @@ def register_pet(input_reg_image_path: str,
                  motion_target_option: Union[str, tuple],
                  verbose: bool,
                  type_of_transform: str = 'DenseRigid',
+                 half_life: float = None,
                  **kwargs):
     """
     Computes and runs rigid registration of 4D PET image series to 3D anatomical image, typically
@@ -85,7 +91,8 @@ def register_pet(input_reg_image_path: str,
         kwargs (keyword arguments): Additional arguments passed to :py:func:`ants.registration`.
     """
     motion_target = determine_motion_target(motion_target_option=motion_target_option,
-                                            input_image_path=input_reg_image_path)
+                                            input_image_4d_path=input_reg_image_path,
+                                            half_life=half_life)
     motion_target_image = ants.image_read(motion_target)
     mri_image = ants.image_read(reference_image_path)
     pet_image_ants = ants.image_read(input_reg_image_path)

@@ -6,27 +6,6 @@ import ants
 from ..meta.label_maps import LabelMapLoader
 from .useful_functions import check_physical_space_for_ants_image_pair
 
-def mean_value_in_region(input_img: ants.ANTsImage,
-                         seg_img: ants.ANTsImage,
-                         mappings: int | list[int]) -> float:
-    """Calculate the mean value in a 3D PET image over a region based on one or more integer
-    mappings corresponding to regions in a segmentation image.
-    
-    Args:
-        input_img (ants.ANTsImage): 3D PET image over which to calculate the mean.
-        seg_img (ants.ANTsImage): Segmentation image in same space as `input_img`.
-        mappings (int | list[int]): One or more mappings to mask input_image over.
-
-    Returns:
-        region_mean (float): Mean PET value over voxels in the regions corresponding to
-            `mappings`."""
-    region_mask = ants.mask_image(input_img, seg_img, level=mappings)
-    region_arr = region_mask.numpy().flatten()
-    region_arr_nonzero = region_arr.nonzero()
-    voxel_arr = region_arr[region_arr_nonzero]
-    return voxel_arr.mean()
-
-
 class RegionalStats:
     """Run statistics on each region in a parametric 3D PET kinetic model or other image.
     

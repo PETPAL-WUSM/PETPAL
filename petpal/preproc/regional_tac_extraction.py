@@ -192,7 +192,7 @@ def write_tacs(input_image_path: str,
         print('Finished writing TACs.')
 
 
-def roi_tac(input_image_path: str,
+def roi_tac(input_image_4d_path: str,
             roi_image_path: str,
             region: list[int] | int,
             out_tac_path: str | None = None,
@@ -223,8 +223,8 @@ def roi_tac(input_image_path: str,
         raise ValueError("'time_frame_keyword' must be one of "
                          "'FrameReferenceTime' or 'FrameTimesStart'")
 
-    pet_meta = image_io.load_metadata_for_nifti_with_same_filename(input_image_path)
-    pet_numpy = ants.image_read(input_image_path).numpy()
+    pet_meta = image_io.load_metadata_for_nifti_with_same_filename(input_image_4d_path)
+    pet_numpy = ants.image_read(input_image_4d_path).numpy()
     seg_numpy = ants.image_read(roi_image_path).numpy()
 
     region_mask = combine_regions_as_mask(segmentation_img=seg_numpy,

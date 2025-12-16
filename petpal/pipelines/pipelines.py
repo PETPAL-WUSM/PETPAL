@@ -4,6 +4,7 @@ import copy
 from typing import Union
 from .steps_base import *
 from .steps_containers import StepsContainer, StepsPipeline
+from ..utils.image_io import get_half_life_from_nifti
 from ..utils.bids_utils import gen_bids_like_dir_path, gen_bids_like_filepath
 
 
@@ -804,7 +805,9 @@ class BIDS_Pipeline(BIDSyPathsForPipelines, StepsPipeline):
         containers = obj.step_containers
         
         containers["preproc"][0].input_image_path = obj.pet_path
+        containers["preproc"][1].kwargs['half_life'] = get_half_life_from_nifti(obj.pet_path)
         containers["preproc"][2].kwargs['reference_image_path'] = obj.anat_path
+        containers["preproc"][2].kwargs['half_life'] = get_half_life_from_nifti(obj.pet_path)
         containers["preproc"][3].segmentation_label_map_path = obj.seg_table
         containers["preproc"][3].segmentation_image_path = obj.seg_img
         containers["preproc"][4].raw_blood_tac_path = obj.blood_path

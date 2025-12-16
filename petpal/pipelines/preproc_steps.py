@@ -612,12 +612,9 @@ class ImageToImageStep(FunctionBasedStep):
         Returns:
             ImageToImageStep: A new instance for motion correction frames above mean value.
         """
-        defaults = dict(name=name,
-                        function=motion_corr_frames_above_mean_value,
-                        input_image_path='',
-                        output_image_path='',
-                        motion_target_option='mean_image',
-                        verbose=verbose)
+        defaults = dict(name=name, function=motion_corr_frames_above_mean_value,
+                        input_image_path='', output_image_path='', motion_target_option='mean_image', verbose=verbose,
+                        half_life=None, )
         override_dict = defaults | overrides
         try:
             return cls(**override_dict)
@@ -652,7 +649,7 @@ class ImageToImageStep(FunctionBasedStep):
             return cls(**defaults)
 
     @classmethod
-    def default_register_pet_to_t1(cls, name:str = 'register_pet_to_t1', reference_image_path='', verbose=False, **overrides):
+    def default_register_pet_to_t1(cls, name:str = 'register_pet_to_t1', reference_image_path='', half_life:float=None, verbose=False, **overrides):
         """
         Creates a default instance for registering PET to T1 image using :func:`register_pet<petpal.preproc.register.register_pet>`.
         All paths are empty-strings.
@@ -660,6 +657,8 @@ class ImageToImageStep(FunctionBasedStep):
         Args:
             name (str): Name of the step. Defaults to 'register_pet_to_t1'
             reference_image_path (str): Path to the reference image.
+            half_life (float): Half-life value, in seconds, for the radiotracer. Used to
+                generate a weighted_series_sum image.
             verbose (bool): Whether to run in verbose mode.
             **overrides: Override default parameters.
 
@@ -669,7 +668,7 @@ class ImageToImageStep(FunctionBasedStep):
         """
         defaults = dict(name=name, function=register_pet, input_image_path='', output_image_path='',
                         reference_image_path=reference_image_path, motion_target_option='weighted_series_sum',
-                        verbose=verbose)
+                        verbose=verbose, half_life=half_life)
         override_dict = defaults | overrides
         try:
             return cls(**override_dict)
