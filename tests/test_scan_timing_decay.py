@@ -2,7 +2,76 @@ import numpy as np
 import pytest
 from petpal.utils.scan_timing import calculate_frame_reference_time
 from petpal.preproc.decay_correction import calculate_frame_decay_factor
+from petpal.utils.scan_timing import ScanTimingInfo
 
+
+def test_from_metadata_with_all_keys():
+    metadata = {
+        "FrameDuration": [60, 120, 180],
+        "FrameTimesStart": [0, 60, 180],
+        "FrameTimesEnd": [60, 180, 360],
+        "FrameReferenceTime": [30, 120, 270],
+        "DecayCorrectionFactor": [1.0, 0.95, 0.9],
+    }
+    sti = ScanTimingInfo.from_metadata(metadata)
+    np.testing.assert_allclose(sti.duration, np.array([60.0, 120.0, 180.0]))
+    np.testing.assert_allclose(sti.start, np.array([0.0, 60.0, 180.0]))
+    np.testing.assert_allclose(sti.end, np.array([60.0, 180.0, 360.0]))
+    np.testing.assert_allclose(sti.center, np.array([30.0, 120.0, 270.0]))
+    np.testing.assert_allclose(sti.decay, np.array([1.0, 0.95, 0.9]))
+    assert sti.duration.dtype.kind == "f"
+    assert sti.start.dtype.kind == "f"
+    assert sti.end.dtype.kind == "f"
+    assert sti.center.dtype.kind == "f"
+    assert sti.decay.dtype.kind == "f"
+
+
+def test_from_metadata_infers_start_end_and_center_and_uses_decayfactor():
+    metadata = {
+        "FrameDuration": [30, 30, 60],
+        # no FrameTimesStart, no FrameTimesEnd, no FrameReferenceTime
+        "DecayFactor": [1.0, 0.99, 0.98],
+    }
+    sti = ScanTimingInfo.from_metadata(metadata)
+    expected_starts = np.array([0.0, 30.0, 60.0])
+    expected_ends = np.array([30.0, 60.0, 120.0])
+    expected_centers = expected_starts + np.array([30.0, 30.0, 60.0]) / 2.0
+    np.testing.assert_allclose(sti.start, expected_starts)
+    np.testing.assert_allclose(sti.end, expected_ends)
+    np.testing.assert_allclose(sti.center, expected_centers)
+    np.testing.assert_allclose(sti.duration, np.array([30.0, 30.0, 60.0]))
+    np.testing.assert_allclose(sti.decay, np.array([1.0, 0.99, 0.98]))
+
+
+def test_from_metadata_prefers_decay_correction_over_decayfactor():
+    metadata = {
+        "FrameDuration": [10, 20],
+        "FrameTimesStart": [0, 10],
+        "FrameTimesEnd": [10, 30],
+        "DecayFactor": [0.5, 0.6],
+        "DecayCorrectionFactor": [0.9, 0.8],
+    }
+    sti = ScanTimingInfo.from_metadata(metadata)
+    # DecayCorrectionFactor should be used when present
+    np.testing.assert_allclose(sti.decay, np.array([0.9, 0.8]))
+
+
+def test_from_start_end_computes_duration_center_and_default_decay():
+    starts = np.array([0.0, 60.0, 180.0])
+    ends = np.array([60.0, 180.0, 360.0])
+    info = ScanTimingInfo.from_start_end(frame_starts=starts, frame_ends=ends)
+    np.testing.assert_allclose(info.duration, np.array([60.0, 120.0, 180.0]))
+    np.testing.assert_allclose(info.center, np.array([30.0, 120.0, 270.0]))
+    np.testing.assert_allclose(info.decay, np.ones_like(starts))
+
+def test_from_start_end_uses_provided_decay_list():
+    starts = np.array([0.0, 50.0])
+    ends = np.array([25.0, 100.0])
+    decay_list = [1.0, 0.9]
+    info = ScanTimingInfo.from_start_end(frame_starts=starts, frame_ends=ends, decay_correction_factor=decay_list)
+    np.testing.assert_allclose(info.duration, np.array([25.0, 50.0]))
+    np.testing.assert_allclose(info.center, np.array([12.5, 75.0]))
+    np.testing.assert_allclose(info.decay, np.array(decay_list))
 
 def test_ref_time_no_decay_returns_midpoint():
     durations = np.array([5.0, 10.0])

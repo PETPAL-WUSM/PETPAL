@@ -1,6 +1,7 @@
 """
 Module to handle timing information of PET scans.
 """
+from typing import Self
 from dataclasses import dataclass
 import numpy as np
 
@@ -81,8 +82,8 @@ class ScanTimingInfo:
 
     """
     duration: np.ndarray[float]
-    end: np.ndarray[float]
     start: np.ndarray[float]
+    end: np.ndarray[float]
     center: np.ndarray[float]
     decay: np.ndarray[float]
 
@@ -129,7 +130,7 @@ class ScanTimingInfo:
 
 
     @classmethod
-    def from_metadata(cls, metadata_dict: dict):
+    def from_metadata(cls, metadata_dict: dict) -> Self:
         r"""
         Extracts frame timing information and decay factors from a json metadata.
         Expects that the JSON metadata has ``FrameDuration`` and ``DecayFactor`` or
@@ -154,13 +155,13 @@ class ScanTimingInfo:
         """
         frm_dur = np.asarray(metadata_dict['FrameDuration'], float)
         try:
-            frm_ends = np.asarray(metadata_dict['FrameTimesEnd'], float)
-        except KeyError:
-            frm_ends = np.cumsum(frm_dur)
-        try:
             frm_starts = np.asarray(metadata_dict['FrameTimesStart'], float)
         except KeyError:
-            frm_starts = np.diff(frm_ends)
+            frm_starts = np.cumsum(frm_dur)-frm_dur
+        try:
+            frm_ends = np.asarray(metadata_dict['FrameTimesEnd'], float)
+        except KeyError:
+            frm_ends = frm_starts+frm_dur
         try:
             decay = np.asarray(metadata_dict['DecayCorrectionFactor'], float)
         except KeyError:
@@ -177,7 +178,7 @@ class ScanTimingInfo:
                    decay=decay)
 
     @classmethod
-    def from_nifti(cls, image_path: str):
+    def from_nifti(cls, image_path: str) -> Self:
         r"""
         Extracts frame timing information and decay factors from a NIfTI image metadata.
         Expects that the JSON metadata file has ``FrameDuration`` and ``DecayFactor`` or
@@ -202,6 +203,49 @@ class ScanTimingInfo:
         """
         _meta_data = load_metadata_for_nifti_with_same_filename(image_path=image_path)
         return cls.from_metadata(metadata_dict=_meta_data)
+
+    @classmethod
+    def from_start_end(cls,
+                       frame_starts: np.ndarray,
+                       frame_ends: np.ndarray,
+                       decay_correction_factor: np.ndarray | None=None) -> Self:
+        """Infer timing properties based on start and end time.
+        
+        Args:
+            frame_starts (np.ndarray): Start time of each frame.
+            frame_ends (np.ndarray): End time of each frame.
+            decay_correction_factor (np.ndarray | None): Decay correction factor, which can be
+                optionally provided based on the type of analysis being done. If None, frame decay
+                will be set to ones. Default None.
+
+        Returns:
+            scan_timing_info (ScanTimingInfo): ScanTimingInfo object with the correct start, end,
+                duration, midpoint, and (optionally) decay correction for each frame.
+
+        Raises:
+            ValueError: If frame_starts, frame_ends, and decay_correction_factor (if provided) are
+                not of identical shape.
+
+        """
+        if frame_starts.shape != frame_ends.shape:
+            raise ValueError("frame_ends must have the same shape as frame_starts")
+
+        frame_duration = frame_ends - frame_starts
+        frame_midpoint = frame_starts + frame_duration / 2
+        frame_decay = np.ones_like(frame_starts)
+
+        if decay_correction_factor is None:
+            frame_decay = np.ones_like(frame_starts, dtype=float)
+        else:
+            frame_decay = np.asarray(decay_correction_factor, dtype=float)
+            if frame_decay.shape != frame_starts.shape:
+                raise ValueError("decay_correction_factor must have the same shape as frame_starts")
+
+        return cls(duration=frame_duration,
+                   start=frame_starts,
+                   end=frame_ends,
+                   center=frame_midpoint,
+                   decay=frame_decay)
 
 
 def get_window_index_pairs_from_durations(frame_durations: np.ndarray, w_size: float):
