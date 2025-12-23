@@ -1,6 +1,7 @@
 """
 Module to handle timing information of PET scans.
 """
+from typing import Self
 from dataclasses import dataclass
 import numpy as np
 
@@ -129,7 +130,7 @@ class ScanTimingInfo:
 
 
     @classmethod
-    def from_metadata(cls, metadata_dict: dict):
+    def from_metadata(cls, metadata_dict: dict) -> Self:
         r"""
         Extracts frame timing information and decay factors from a json metadata.
         Expects that the JSON metadata has ``FrameDuration`` and ``DecayFactor`` or
@@ -177,7 +178,7 @@ class ScanTimingInfo:
                    decay=decay)
 
     @classmethod
-    def from_nifti(cls, image_path: str):
+    def from_nifti(cls, image_path: str) -> Self:
         r"""
         Extracts frame timing information and decay factors from a NIfTI image metadata.
         Expects that the JSON metadata file has ``FrameDuration`` and ``DecayFactor`` or
@@ -207,8 +208,19 @@ class ScanTimingInfo:
     def from_start_end(cls,
                        frame_starts: np.ndarray,
                        frame_ends: np.ndarray,
-                       decay_correction_factor: np.ndarray | None=None):
-        """Infer timing properties based on start and end time."""
+                       decay_correction_factor: np.ndarray | None=None) -> Self:
+        """Infer timing properties based on start and end time.
+        
+        Args:
+            frame_starts (np.ndarray): Start time of each frame.
+            frame_ends (np.ndarray): End time of each frame.
+            decay_correction_factor (np.ndarray | None): Decay correction factor, which can be
+                optionally provided based on the type of analysis being done. If None, frame decay
+                will be set to ones. Default None.
+
+        Returns:
+            scan_timing_info (ScanTimingInfo): ScanTimingInfo object with the correct start, end,
+                duration, midpoint, and (optionally) decay correction for each frame."""
         frame_duration = frame_ends - frame_starts
         frame_midpoint = frame_starts + frame_duration / 2
         frame_decay = np.ones_like(frame_starts)
