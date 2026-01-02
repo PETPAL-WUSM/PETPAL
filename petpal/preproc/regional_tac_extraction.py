@@ -345,7 +345,6 @@ class WriteRegionalTacs:
             region_name = f'UNK{label:>04}'
         return region_name
 
-
     def extract_tac(self,region_mapping: int | list[int], **tac_calc_kwargs) -> TimeActivityCurve:
         """
         Run self.tac_extraction_func on one region and return the TAC.
@@ -396,6 +395,8 @@ class WriteRegionalTacs:
         for i,region_name in enumerate(self.region_names):
             mappings = self.region_maps[i]
             tac = self.extract_tac(region_mapping=mappings, **tac_calc_kwargs)
+            if np.isnan(tac.activity).any():
+                continue
             if one_tsv_per_region:
                 tac.to_tsv(filename=f'{out_tac_dir}/{out_tac_prefix}_seg-{region_name}_tac.tsv')
             else:
