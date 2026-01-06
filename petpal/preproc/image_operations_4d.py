@@ -65,8 +65,8 @@ def stitch_broken_scans(input_image_path: str,
         noninitial_time_zeroes = [meta['TimeZero'] for meta in noninitial_image_metadata_dicts]
         actual_time_zero = initial_image_metadata['TimeZero']
     except KeyError:
-        raise KeyError(f'.json sidecar for one of your input images does not contain required BIDS key "TimeZero". '
-                       f'Aborting...')
+        noninitial_time_zeroes = [meta['AcquisitionTime'] for meta in noninitial_image_metadata_dicts]
+        actual_time_zero = initial_image_metadata['AcquisitionTime']
 
     initial_scan_time = datetime.time.fromisoformat(actual_time_zero)
     placeholder_date = datetime.date.today()
@@ -81,7 +81,7 @@ def stitch_broken_scans(input_image_path: str,
     for t_d, additional_image_metadata in zip(times_since_timezero,noninitial_image_metadata_dicts):
         original_frame_times_start = additional_image_metadata['FrameTimesStart']
         additional_image_metadata['FrameTimesStart'] = [t+t_d.total_seconds() for t in original_frame_times_start]
-        additional_image_metadata['TimeZero'] = actual_time_zero
+        additional_image_metadata['AcquisitionTime'] = actual_time_zero
 
     corrected_arrays = [initial_image_data]
     new_metadata = initial_image_metadata
