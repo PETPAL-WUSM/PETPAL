@@ -355,9 +355,9 @@ class Sgtm:
             out_tsv_path (str): File path to which results are saved.
         """
         sgtm_result_to_write = pd.DataFrame()
-        sgtm_result_to_write['Region'] = self.unique_labels[0]
+        sgtm_result_to_write['Region'] = self.unique_labels[1]
         sgtm_result_to_write['Mean'] = sgtm_result[1]
-        sgtm_result_to_write.to_csv(out_tsv_path,sep='\t')
+        sgtm_result_to_write.to_csv(out_tsv_path,sep='\t',index=False)
 
     def save_results_4d_tacs(self,
                              sgtm_result: np.ndarray,
