@@ -374,6 +374,7 @@ class WriteRegionalTacs:
                                               label=region_mapping)
         pet_masked_region = apply_mask_4d(input_arr=self.pet_arr,
                                           mask_arr=region_mask)
+        self.check_n_empty_pet_voxels(pet_masked_voxels=pet_masked_region)
         extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region,
                                                               **tac_calc_kwargs)
         region_tac = TimeActivityCurve(times=self.scan_timing.center_in_mins,
