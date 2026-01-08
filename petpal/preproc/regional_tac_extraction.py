@@ -432,7 +432,7 @@ class WriteRegionalTacs:
         for i,region_name in enumerate(self.region_names):
             mappings = self.region_maps[i]
             tac = self.extract_tac(region_mapping=mappings, **tac_calc_kwargs)
-            if tac.contains_any_nan():
+            if tac.contains_any_nan:
                 warn(f"Region {region_name} did not find matching voxels, excluding from results.")
                 tacs_data.drop([region_name,f'{region_name}_unc'],axis=1,inplace=True)
                 continue
