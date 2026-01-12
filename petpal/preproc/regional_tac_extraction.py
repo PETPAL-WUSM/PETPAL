@@ -355,7 +355,7 @@ class WriteRegionalTacs:
             
         Returns:
             pet_masked_region_is_empty (bool): If True, input region is empty."""
-        if len(pet_masked_region)==0:
+        if pet_masked_region.size==0:
             return True
         return False
 
