@@ -576,9 +576,10 @@ def unique_segmentation_labels(segmentation_img: ants.core.ANTsImage | np.ndarra
 
 def seg_crop_to_pet_fov(pet_img: ants.ANTsImage,
                         segmentation_img: ants.ANTsImage) -> ants.ANTsImage:
-    """Zero out segmentation values that lie outside of the PET FOV. Especially applicable to
-    scanners with limited FOV (field of view). PET voxels with values less than 1e-36 are
-    considered outside of the FOV.
+    """Zero out segmentation values that lie outside of the PET FOV.
+    
+    Especially applicable to scanners with limited FOV (field of view). PET voxels with values less
+    than 1e-36 are considered outside of the FOV.
     
     Args:
         pet_img (ants.ANTsImage): PET image in anatomical space used to crop segmentation
