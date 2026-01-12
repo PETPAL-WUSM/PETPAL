@@ -75,12 +75,40 @@ class TimeActivityCurve:
         return len(self.times)
 
     def __post_init__(self):
+        self.validate_activity()
         if self.uncertainty.size == 0:
             self.uncertainty = np.empty_like(self.times)
             self.uncertainty[:] = np.nan
         assert np.shape(self.uncertainty) == np.shape(self.times) == np.shape(self.activity), (
             f"TAC fields must have the same shapes.\ntimes:{self.times.shape}"
             "activity:{self.activity.shape} uncertainty:{self.uncertainty.shape}")
+
+    def validate_activity(self):
+        """Validates that the activity attribute is defined correctly.
+        
+        `self.activity` must have the following properties:
+        1) It must exist and not be None
+        2) It must be a numpy array
+        3) It must have dtype float
+        4) It must be 1D
+
+        This function raises a ValueError if self.activity does not meet the first criteria, and
+        attempts to coerce self.activity into a 1D, numeric numpy array with dtype float if
+        criteria 2-4 are not met.
+        """
+        if not hasattr(self, "activity") or self.activity is None:
+            raise ValueError("TimeActivityCurve.activity must be provided and not be None")
+
+        try:
+            arr = np.asarray(self.activity, dtype=float)
+        except (TypeError, ValueError) as exc:
+            error_message = "TimeActivityCurve.activity must be numeric or convertible to numeric"
+            raise TypeError(error_message) from exc
+
+        if arr.ndim != 1:
+            arr = arr.ravel()
+
+        self.activity = arr
 
     @classmethod
     def from_tsv(cls, filename: str):
