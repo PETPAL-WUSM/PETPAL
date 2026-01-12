@@ -453,7 +453,7 @@ class WriteRegionalTacs:
                 tacs_data[region_name] = tac.activity
                 tacs_data[f'{region_name}_unc'] = tac.uncertainty
 
-        if len(empty_regions>0):
+        if len(empty_regions)>0:
             warn("Empty regions were found during tac extraction. TACs for the following regions"
                  f"were not saved: {empty_regions}")
             tacs_data.drop([region for region in empty_regions],axis=1,inplace=True)
