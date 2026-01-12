@@ -513,7 +513,7 @@ class TimeActivityCurve:
 
     @staticmethod
     def tac_dispersion(tac: 'TimeActivityCurve',
-                       disp_func: Callable[[np.ndarray], np.ndarray],
+                       disp_func: Callable[..., np.ndarray],
                        disp_kwargs: dict,
                        num_samples: int = 4096):
         r"""
@@ -531,7 +531,7 @@ class TimeActivityCurve:
 
         Args:
             tac (TimeActivityCurve): The original time-activity curve to be convolved.
-            disp_func (Callable[[np.ndarray], np.ndarray]):
+            disp_func (Callable[..., np.ndarray]):
                 The dispersion function to be applied. This function must accept an array of
                 times as its first argument, followed by any additional arguments specified
                 in `disp_kwargs`.
