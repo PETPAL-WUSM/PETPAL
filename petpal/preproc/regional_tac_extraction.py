@@ -456,7 +456,7 @@ class WriteRegionalTacs:
         if len(empty_regions)>0:
             warn("Empty regions were found during tac extraction. TACs for the following regions"
                  f"were not saved: {empty_regions}")
-            tacs_data.drop([region for region in empty_regions],axis=1,inplace=True)
+            tacs_data.drop(empty_regions,axis=1,inplace=True)
             tacs_data.drop([f'{region}_unc' for region in empty_regions],axis=1,inplace=True)
 
         if not one_tsv_per_region:
