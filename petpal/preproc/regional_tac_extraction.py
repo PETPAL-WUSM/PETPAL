@@ -448,6 +448,7 @@ class WriteRegionalTacs:
                 empty_regions.append(region_name)
                 continue
             if one_tsv_per_region:
+                os.makedirs(out_tac_dir, exist_ok=True)
                 tac.to_tsv(filename=f'{out_tac_dir}/{out_tac_prefix}_seg-{region_name}_tac.tsv')
             else:
                 tacs_data[region_name] = tac.activity
@@ -460,6 +461,7 @@ class WriteRegionalTacs:
             tacs_data.drop([f'{region}_unc' for region in empty_regions],axis=1,inplace=True)
 
         if not one_tsv_per_region:
+            os.makedirs(out_tac_dir, exist_ok=True)
             tacs_data.to_csv(f'{out_tac_dir}/{out_tac_prefix}_multitacs.tsv', sep='\t', index=False)
 
     def __call__(self,
