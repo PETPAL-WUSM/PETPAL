@@ -405,7 +405,8 @@ class Sgtm:
         tac_time_ends = scan_timing.end_in_mins
 
         tac_array = np.asarray(sgtm_result).T
-        tacs_data = pd.DataFrame()
+        tacs_data_columns = ['frame_start(min)','frame_end(min)']+self.unique_labels[1]
+        tacs_data = pd.DataFrame(columns=tacs_data_columns)
 
         tacs_data['frame_start(min)'] = tac_time_starts
         tacs_data['frame_end(min)'] = tac_time_ends
