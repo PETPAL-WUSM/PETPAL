@@ -59,7 +59,6 @@ def main():
     parser_multitac = subparsers.add_parser('graphical-analysis-multitac')
     _add_common_args(parser_multitac)
     parser_multitac.add_argument("-r", "--roi-tacs-dir", required=True, help="Path to directory containing ROI TTACs")
-    parser_multitac.add_argument("-x","--excel", action='store_true',help='Set to output an excel-compatible table in a single file.',default=False)
 
     args = parser.parse_args()
     command = str(args.command).replace('-','_')
@@ -90,7 +89,7 @@ def main():
                                                               output_filename_prefix=args.output_filename_prefix,
                                                               method=method,
                                                               fit_thresh_in_mins=args.threshold_in_mins)
-        graphical_analysis(one_file_per_region=not args.excel, **run_kwargs)
+        graphical_analysis(output_as_tsv=True, output_as_json=False, **run_kwargs)
 
     if args.print:
         for key, val in graphical_analysis.analysis_props.items():

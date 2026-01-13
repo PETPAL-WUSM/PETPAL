@@ -1,6 +1,7 @@
 """
 Regional TAC extraction
 """
+from warnings import warn
 import os
 from collections.abc import Callable
 import pathlib
@@ -345,6 +346,20 @@ class WriteRegionalTacs:
             region_name = f'UNK{label:>04}'
         return region_name
 
+    def is_empty_region(self,pet_masked_region: np.ndarray) -> bool:
+        """Check if masked PET region has zero matched voxels, or is all NaNs. In either case,
+        return True, otherwise return False.
+        
+        Args:
+            pet_masked_region (np.ndarray): Array of PET voxels masked to a specific region.
+            
+        Returns:
+            pet_masked_region_is_empty (bool): If True, input region is empty."""
+        if pet_masked_region.size==0:
+            return True
+        if np.all(np.isnan(pet_masked_region)):
+            return True
+        return False
 
     def extract_tac(self,region_mapping: int | list[int], **tac_calc_kwargs) -> TimeActivityCurve:
         """
@@ -359,14 +374,45 @@ class WriteRegionalTacs:
         """
         region_mask = combine_regions_as_mask(segmentation_img=self.seg_arr,
                                               label=region_mapping)
+
         pet_masked_region = apply_mask_4d(input_arr=self.pet_arr,
                                           mask_arr=region_mask)
-        extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region,
-                                                              **tac_calc_kwargs)
+
+        is_region_empty = self.is_empty_region(pet_masked_region=pet_masked_region)
+        if is_region_empty:
+            extracted_tac = np.empty_like(self.scan_timing.center_in_mins)
+            extracted_tac.fill(np.nan)
+            uncertainty = extracted_tac.copy()
+        else:
+            extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region,
+                                                                  **tac_calc_kwargs)
         region_tac = TimeActivityCurve(times=self.scan_timing.center_in_mins,
                                        activity=extracted_tac,
                                        uncertainty=uncertainty)
         return region_tac
+
+    def gen_tacs_data_frame(self) -> pd.DataFrame:
+        """Get empty data frame to store TACs. Sets first two columns to frame start and end
+        times, and remaining columns are named by region activity and uncertainty, based on the
+        regions included in the label map.
+        
+        Returns:
+            tacs_data (pd.DataFrame): Data frame with columns set for frame start and end time,
+            and activity and uncertainty for each included region. Frame start and end time
+            columns filled with scan timing data.
+        """
+        activity_uncertainty_column_names = []
+        for region_name in self.region_names:
+            activity_uncertainty_column_names.append(region_name)
+            activity_uncertainty_column_names.append(f'{region_name}_unc')
+        cols_list = ['frame_start(min)','frame_end(min)'] + activity_uncertainty_column_names
+        tacs_data = pd.DataFrame(columns=cols_list)
+
+        tacs_data['frame_start(min)'] = self.scan_timing.start_in_mins
+        tacs_data['frame_end(min)'] = self.scan_timing.end_in_mins
+
+        return tacs_data
+
 
 
     def write_tacs(self,
@@ -378,7 +424,8 @@ class WriteRegionalTacs:
         Function to write Tissue Activity Curves for each region, given a segmentation,
         4D PET image, and label map. Computes the average of the PET image within each
         region. Writes TACs in TSV format with region name, frame start time, frame end time, and
-        activity and uncertainty within each region.
+        activity and uncertainty within each region. Skips writing regions without any matched
+        voxels.
 
         Args:
             out_tac_prefix (str): Prefix for the output files, usually the BIDS subject and
@@ -387,22 +434,34 @@ class WriteRegionalTacs:
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
                 image. If False, write one TSV file with all TACs in the image.
             **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func.
+
+        Raises:
+            Warning: for each region without any matched voxels, warn user that TAC is skipped.
         """
-        tacs_data = pd.DataFrame()
+        tacs_data = self.gen_tacs_data_frame()
 
-        tacs_data['frame_start(min)'] = self.scan_timing.start_in_mins
-        tacs_data['frame_end(min)'] = self.scan_timing.end_in_mins
-
+        empty_regions = []
         for i,region_name in enumerate(self.region_names):
             mappings = self.region_maps[i]
             tac = self.extract_tac(region_mapping=mappings, **tac_calc_kwargs)
+            if tac.contains_any_nan:
+                empty_regions.append(region_name)
+                continue
             if one_tsv_per_region:
+                os.makedirs(out_tac_dir, exist_ok=True)
                 tac.to_tsv(filename=f'{out_tac_dir}/{out_tac_prefix}_seg-{region_name}_tac.tsv')
             else:
                 tacs_data[region_name] = tac.activity
                 tacs_data[f'{region_name}_unc'] = tac.uncertainty
 
+        if len(empty_regions)>0:
+            warn("Empty regions were found during tac extraction. TACs for the following regions "
+                 f"were not saved: {empty_regions}")
+            tacs_data.drop(empty_regions,axis=1,inplace=True)
+            tacs_data.drop([f'{region}_unc' for region in empty_regions],axis=1,inplace=True)
+
         if not one_tsv_per_region:
+            os.makedirs(out_tac_dir, exist_ok=True)
             tacs_data.to_csv(f'{out_tac_dir}/{out_tac_prefix}_multitacs.tsv', sep='\t', index=False)
 
     def __call__(self,

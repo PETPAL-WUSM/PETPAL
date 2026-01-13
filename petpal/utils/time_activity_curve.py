@@ -75,12 +75,40 @@ class TimeActivityCurve:
         return len(self.times)
 
     def __post_init__(self):
+        self.validate_activity()
         if self.uncertainty.size == 0:
             self.uncertainty = np.empty_like(self.times)
             self.uncertainty[:] = np.nan
         assert np.shape(self.uncertainty) == np.shape(self.times) == np.shape(self.activity), (
             f"TAC fields must have the same shapes.\ntimes:{self.times.shape}"
             "activity:{self.activity.shape} uncertainty:{self.uncertainty.shape}")
+
+    def validate_activity(self):
+        """Validates that the activity attribute is defined correctly.
+        
+        `self.activity` must have the following properties:
+        1) It must exist and not be None
+        2) It must be a numpy array
+        3) It must have dtype float
+        4) It must be 1D
+
+        This function raises a ValueError if self.activity does not meet the first criteria, and
+        attempts to coerce self.activity into a 1D, numeric numpy array with dtype float if
+        criteria 2-4 are not met.
+        """
+        if not hasattr(self, "activity") or self.activity is None:
+            raise ValueError("TimeActivityCurve.activity must be provided and not be None")
+
+        try:
+            arr = np.asarray(self.activity, dtype=float)
+        except (TypeError, ValueError) as exc:
+            error_message = "TimeActivityCurve.activity must be numeric or convertible to numeric"
+            raise TypeError(error_message) from exc
+
+        if arr.ndim != 1:
+            arr = arr.ravel()
+
+        self.activity = arr
 
     @classmethod
     def from_tsv(cls, filename: str):
@@ -509,29 +537,29 @@ class TimeActivityCurve:
                                                           kind='linear',
                                                           fill_value='extrapolate')(tac.times)
             return TimeActivityCurve(tac.times, shifted_vals_on_tac_times)
-        else:
-            return shifted_tac
+        return shifted_tac
 
     @staticmethod
     def tac_dispersion(tac: 'TimeActivityCurve',
-                       disp_func: Callable[[np.ndarray, ...], np.ndarray],
+                       disp_func: Callable[..., np.ndarray],
                        disp_kwargs: dict,
                        num_samples: int = 4096):
         r"""
         Applies a dispersion function to a time-activity curve (TAC) and returns the convolved TAC.
 
-        This method evaluates the specified dispersion function `disp_func` at supersampled time points.
-        It performs convolution (using :func:`scipy.signal.convolve`)of the supersampled TAC with
-        the dispersion function, and the result is sampled back at the original TAC time points
-        to form the new convolved TAC.
+        This method evaluates the specified dispersion function `disp_func` at supersampled time
+        points. It performs convolution (using :func:`scipy.signal.convolve`) of the supersampled
+        TAC with the dispersion function, and the result is sampled back at the original TAC time
+        points to form the new convolved TAC.
 
         .. note::
-            We perform the supersampling to ensure that the TACs are sampled evenly before performing
-            the convolution. Convolving non-evenly sampled arrays produces nonsense values.
+            We perform the supersampling to ensure that the TACs are sampled evenly before
+            performing the convolution. Convolving non-evenly sampled arrays produces nonsense
+            values.
 
         Args:
             tac (TimeActivityCurve): The original time-activity curve to be convolved.
-            disp_func (Callable[[np.ndarray, ...], np.ndarray]):
+            disp_func (Callable[..., np.ndarray]):
                 The dispersion function to be applied. This function must accept an array of
                 times as its first argument, followed by any additional arguments specified
                 in `disp_kwargs`.
@@ -541,8 +569,8 @@ class TimeActivityCurve:
                 Defaults to 4096.
 
         Returns:
-            TimeActivityCurve: A new `TimeActivityCurve` instance with the convolved activity values,
-            resampled at the original TAC time points.
+            TimeActivityCurve: A new `TimeActivityCurve` instance with the convolved activity
+            values, resampled at the original TAC time points.
 
         Example:
             .. code-block:: python
@@ -591,6 +619,12 @@ class TimeActivityCurve:
         disp_tac = TimeActivityCurve(tac.times, disp_vals)
 
         return disp_tac.set_activity_non_negative()
+
+    @property
+    def contains_any_nan(self):
+        """Return True if TAC has any NaN activity values."""
+        any_nan = np.isnan(self.activity).any()
+        return any_nan
 
 def safe_load_tac(filename: str,
                   with_uncertainty: bool = False,

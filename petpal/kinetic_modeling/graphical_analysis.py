@@ -1103,13 +1103,13 @@ class MultiTACGraphicalAnalysis(GraphicalAnalysis, MultiTACAnalysisMixin):
         if self.analysis_props[0]['RSquared'] is None:
             raise RuntimeError("'run_analysis' method must be called before 'save_analysis'.")
 
-        if output_as_tsv:
+        if output_as_json:
             km_multifit_analysis_to_jsons(analysis_props=self.analysis_props,
                                           output_directory=self.output_directory,
                                           output_filename_prefix=self.output_filename_prefix,
                                           method=self.method,
                                           inferred_seg_labels=self.inferred_seg_labels)
-        if output_as_json:
+        if output_as_tsv:
             km_multifit_analysis_to_tsv(analysis_props=self.analysis_props,
                                         output_directory=self.output_directory,
                                         output_filename_prefix=self.output_filename_prefix,

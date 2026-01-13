@@ -14,7 +14,9 @@ import nibabel
 from nibabel import processing
 import pandas as pd
 
-from ..utils.useful_functions import gen_nd_image_based_on_image_list
+from ..utils.useful_functions import (gen_nd_image_based_on_image_list,
+                                      check_physical_space_for_ants_image_pair,
+                                      get_average_of_timeseries)
 from ..utils import math_lib
 
 
@@ -571,3 +573,28 @@ def unique_segmentation_labels(segmentation_img: ants.core.ANTsImage | np.ndarra
     if not zeroth_roi:
         labels = labels[labels != 0]
     return labels
+
+def seg_crop_to_pet_fov(pet_img: ants.ANTsImage,
+                        segmentation_img: ants.ANTsImage,
+                        pet_thresh_value: float=np.finfo(float).eps) -> ants.ANTsImage:
+    """Zero out segmentation values that lie outside of the PET FOV.
+    
+    Especially applicable to scanners with limited FOV (field of view). PET voxels with values less
+    than 1e-36 are considered outside of the FOV.
+    
+    Args:
+        pet_img (ants.ANTsImage): PET image in anatomical space used to crop segmentation
+        segmentation_img (ants.ANTsImage): Segmentation image in anatomical space such as
+            FreeSurfer to which FOV cropping is applied.
+        pet_thresh_value (float): Lower threshold for the PET image by which the segmentation image
+            is masked. Should be <<1. Default machine epsilon for `float`.
+
+    Returns:
+        segmentation_masked_img (ants.ANTsImage): Segmentation image masked to PET FOV.
+    """
+    if not check_physical_space_for_ants_image_pair(pet_img, segmentation_img):
+        raise ValueError("PET and segmentation image must share physical space.")
+    pet_mean_img = get_average_of_timeseries(input_image=pet_img)
+    pet_mask = ants.threshold_image(pet_mean_img, pet_thresh_value)
+    seg_masked = ants.mask_image(segmentation_img, pet_mask)
+    return seg_masked
