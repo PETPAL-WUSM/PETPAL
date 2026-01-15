@@ -284,6 +284,27 @@ def vat_wm_ref_region(input_segmentation_path: str,
     ants.image_write(image=wm_erode, filename=out_segmentation_path)
 
 
+def eroded_wm_segmentation(input_segmentation_path: str,
+                           out_segmentation_path: str):
+    """
+    Generates eroded white matter region on a segmentation image and merges it into the image,
+    saving result as a new segmentation image.
+
+    Requires FreeSurfer segmentation with original label mappings.
+    
+    Args:
+        input_segmentation_path (str): Path to input freesurfer segmentation, such as aparc+aseg or
+            wmparc.
+        out_segmentation_path (str): Path to output segmentation image with replaced values in
+            eroded whited matter region.
+
+    See also:
+        :meth:`~petpal.preproc.segmentation_tools.vat_wm_ref_region` - function that generates the
+            eroded white matter region.
+    """
+    pass
+
+
 def vat_wm_region_merge(wmparc_segmentation_path: str,
                         out_image_path: str,
                         wm_ref_segmentation_path: str,
