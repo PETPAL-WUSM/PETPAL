@@ -83,7 +83,12 @@ Examples:
    .. code-block:: bash
 
        petpal-preproc warp-pet-atlas -i /path/to/input_img.nii.gz -o petpal_reg-atlas.nii.gz --anatomical /path/to/anat.nii.gz --reference-atlas /path/to/atlas.nii.gz
- 
+
+    * Crop segmentation to PET FOV:
+
+    .. code-block:: bash
+
+        petpal-preproc seg-crop -i /path/to/input_img.nii.gz -o petpal_cropped_seg.nii.gz --segmentation /path/to/segmentation.nii.gz
 
 See Also:
     * :mod:`~petpal.preproc.image_operations_4d` - module used for operations on 4D images.
