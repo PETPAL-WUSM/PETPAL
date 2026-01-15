@@ -241,10 +241,14 @@ def vat_wm_ref_region(input_segmentation_path: str,
                       out_segmentation_path: str):
     """
     Generates the cortical white matter reference region described in O'Donnell
-    JL et al. (2024) PET Quantification of [18F]VAT in Human Brain and Its 
+    JL et al. (2024).
+     
+    Reference: O'Donnell JL et al. (2024). PET Quantification of [18F]VAT in Human Brain and Its 
     Test-Retest Reproducibility and Age Dependence. J Nucl Med. 2024 Jun 
     3;65(6):956-961. doi: 10.2967/jnumed.123.266860. PMID: 38604762; PMCID:
-    PMC11149597. Requires FreeSurfer segmentation with original label mappings.
+    PMC11149597.
+    
+    Requires FreeSurfer segmentation with original label mappings. 
 
     Args:
         input_segmentation_path (str): Path to segmentation on which white
