@@ -5,6 +5,7 @@ from . import utils
 from . import visualizations
 from . import pipelines
 from . import meta
+from . import io
 
 def main():
     print("PET-PAL (Positron Emission Tomography Processing and Analysis Library)")
