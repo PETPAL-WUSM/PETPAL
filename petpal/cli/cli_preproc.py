@@ -460,11 +460,11 @@ def main():
                                        start_time=args.start_time,
                                        end_time=args.end_time)
         case 'windowed_motion_corr':
-            motion_corr.windowed_motion_corr_to_target(input_image_path=args.input_img,
-                                                    out_image_path=args.out_img,
-                                                    motion_target_option=motion_target,
-                                                    w_size=args.window_size,
-                                                    type_of_transform=args.transform_type)
+            motion_corrector = motion_corr.MotionCorrect()
+            motion_corrector(input_image_path=args.input_img,
+                             output_image_path=args.out_img,
+                             motion_target_option=motion_target,
+                             window_dur_sec=args.window_size)
         case 'rescale_image':
             input_img = ants.image_read(filename=args.input_img)
             out_img = image_operations_4d.rescale_image(input_image=input_img,
