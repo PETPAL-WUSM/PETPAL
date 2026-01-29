@@ -2,13 +2,14 @@
 Module to handle abstracted functionalities
 """
 from collections.abc import Callable
+from pathlib import Path
+import re
 import os
 import nibabel
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 import ants
-import re
 
 from . import image_io, math_lib, scan_timing
 
@@ -532,3 +533,11 @@ def gen_nd_image_based_on_image_list(image_list: list[ants.ANTsImage]) -> ants.A
                                 origin=origin_4d,
                                 direction=direction_4d)
     return tmp_image
+
+def coerce_outpath_extension(path: str, ext: str):
+    """Coerce output path to a provided suffix."""
+    path_obj = Path(path)
+    while path_obj.suffix!='':
+        path_obj = path_obj.with_suffix('')
+    path_obj_csv_suffix = path_obj.with_suffix(ext)
+    return str(path_obj_csv_suffix.absolute())
