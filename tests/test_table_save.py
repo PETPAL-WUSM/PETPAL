@@ -1,6 +1,5 @@
 import tempfile
 import os
-import pytest
 import pandas as pd
 from petpal.utils.useful_functions import coerce_outpath_extension
 from petpal.io.table import TableSaver
