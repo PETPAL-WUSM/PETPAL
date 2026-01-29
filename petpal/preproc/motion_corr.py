@@ -681,7 +681,7 @@ def windowed_motion_corr_to_target(input_image_path: str,
     reg_kwargs = {**reg_kwargs_default, **kwargs}
 
     out_image = []
-    for win_id, (st_id, end_id) in enumerate(zip(*window_idx_pairs)):
+    for _, (st_id, end_id) in enumerate(zip(*window_idx_pairs)):
         window_tgt_image = weighted_series_sum_over_window_indices(input_image_4d=input_image,
                                                                    output_image_path=None,
                                                                    window_start_id=st_id,
