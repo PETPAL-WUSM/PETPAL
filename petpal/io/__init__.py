@@ -1,4 +1,4 @@
-from . import csv
+from . import table
 
 def main():
     print("PETPAL - Kinetic Modeling")
