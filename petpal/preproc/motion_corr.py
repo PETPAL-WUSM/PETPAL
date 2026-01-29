@@ -468,7 +468,6 @@ class MotionCorrect:
                                                      input_image_path=input_image_path)
         self.target_img = self.image_loader.load(filename=motion_target_path)
 
-    @property
     def window_index_pairs(self, window_dur_sec: float=300):
         """The pair of indices corresponding to each window in the image."""
         return get_window_index_pairs_from_durations(frame_durations=self.scan_timing.duration,
@@ -497,12 +496,12 @@ class MotionCorrect:
         xfm_out = list(rot_pars)+list(translate_matrix)+list(ants_xfm.fixed_parameters)
         return xfm_out
 
-    def run_motion_correct(self):
+    def run_motion_correct(self, window_dur_sec: float=300):
         """Run motion correction on the input image to the target image."""
         moco_img_stack = []
         window_xfm_stack = []
         input_img_list = ants.ndimage_to_list(self.input_img)
-        for _, (st_id, end_id) in enumerate(zip(*self.window_index_pairs)):
+        for _, (st_id, end_id) in enumerate(zip(*self.window_index_pairs(window_dur_sec=window_dur_sec))):
             window_target_img = self.window_target_img(start_index=st_id, end_index=end_id)
             window_registration = ants.registration(fixed=self.target_img,
                                                     moving=window_target_img,
@@ -535,12 +534,13 @@ class MotionCorrect:
     def __call__(self, input_image_path: str,
                  output_image_path: str,
                  motion_target_option: str | tuple,
-                 copy_metadata: bool = True):
+                 copy_metadata: bool = True,
+                 window_dur_sec: float=300):
         self.get_input_scan_properties(input_image_path=input_image_path)
         self.get_target_img(input_image_path=input_image_path,
                             motion_target_option=motion_target_option)
 
-        moco_img, window_xfms = self.run_motion_correct()
+        moco_img, window_xfms = self.run_motion_correct(window_dur_sec=window_dur_sec)
 
         self.save_xfm_parameters(window_xfms=window_xfms, filename=output_image_path)
         ants.image_write(image=moco_img, filename=output_image_path)
