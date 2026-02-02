@@ -516,7 +516,12 @@ class MotionCorrect:
         return moco_img, np.asarray(window_xfm_stack)
 
     def save_xfm_parameters(self, window_xfms: np.ndarray, filename: str):
-        """Save window transform parameter table"""
+        """Save window transform parameters as a table.
+        
+        Args:
+            window_xfms (np.ndarray): Rigid transform parameters ordered as rotation, translation,
+                centerpoint, then X, Y, Z axis, totalling 9 parameters for each window.
+            filename (str): Path to where table will be saved, including extension."""
         xfm_columns = ['rot_x',
                        'rot_y',
                        'rot_z',
