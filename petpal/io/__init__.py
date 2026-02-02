@@ -2,7 +2,7 @@ from . import table
 from . import image
 
 def main():
-    print("PETPAL - Kinetic Modeling")
+    print("PETPAL - Load and Save Module")
 
 
 if __name__ == "__main__":
