@@ -275,6 +275,8 @@ def get_window_index_pairs_from_durations(frame_durations: np.ndarray, w_size: f
         if _w_dur_sum >= w_size:
             _tmp_w_ids.append(frm_id + 1)
             _w_dur_sum = 0
+    if _tmp_w_ids[-1]!=len(frame_durations):
+        _tmp_w_ids.append(len(frame_durations))
     w_start_ids = np.asarray(_tmp_w_ids[:-1])
     w_end_ids = np.asarray(_tmp_w_ids[1:])
     id_pairs = np.vstack((w_start_ids, w_end_ids))
