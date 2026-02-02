@@ -535,7 +535,22 @@ class MotionCorrect:
                  output_image_path: str,
                  motion_target_option: str | tuple,
                  copy_metadata: bool = True,
-                 window_dur_sec: float=300):
+                 window_dur_sec: float = 300):
+        """Motion correct a dynamic PET image.
+
+        Divides image into segments of duration in seconds `window_dur_sec` and register each frame
+        to a target image, using the same transformation on for every frame in each window.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            output_image_path (str): Path to which motion corrected image is saved.
+            motion_target_option (str | tuple): Path to motion target image, or specify time window
+                such as (0,600) or preset option such as 'mean_image'. See
+                :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
+            copy_metadata (bool): Copies metadata info from input image to output image. Default
+                True.
+            window_dur_sec (float): Duration of each window in seconds. Default 300.
+        """
         self.get_input_scan_properties(input_image_path=input_image_path)
         self.get_target_img(input_image_path=input_image_path,
                             motion_target_option=motion_target_option)
