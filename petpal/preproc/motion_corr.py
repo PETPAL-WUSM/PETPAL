@@ -534,8 +534,9 @@ class MotionCorrect:
     def __call__(self, input_image_path: str,
                  output_image_path: str,
                  motion_target_option: str | tuple,
+                 window_dur_sec: float = 300,
                  copy_metadata: bool = True,
-                 window_dur_sec: float = 300):
+                 save_xfm: bool = True):
         """Motion correct a dynamic PET image.
 
         Divides image into segments of duration in seconds `window_dur_sec` and register each frame
@@ -547,9 +548,12 @@ class MotionCorrect:
             motion_target_option (str | tuple): Path to motion target image, or specify time window
                 such as (0,600) or preset option such as 'mean_image'. See
                 :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
+            window_dur_sec (float): Duration of each window in seconds. Default 300.
             copy_metadata (bool): Copies metadata info from input image to output image. Default
                 True.
-            window_dur_sec (float): Duration of each window in seconds. Default 300.
+            save_xfm (bool): Saves motion correction transform parameters for translation,
+                rotation, and rotation center point. Only compatible with rigid transforms. Default
+                True.
         """
         self.get_input_scan_properties(input_image_path=input_image_path)
         self.get_target_img(input_image_path=input_image_path,
@@ -557,7 +561,8 @@ class MotionCorrect:
 
         moco_img, window_xfms = self.run_motion_correct(window_dur_sec=window_dur_sec)
 
-        self.save_xfm_parameters(window_xfms=window_xfms, filename=output_image_path)
+        if save_xfm:
+            self.save_xfm_parameters(window_xfms=window_xfms, filename=output_image_path)
         ants.image_write(image=moco_img, filename=output_image_path)
         if copy_metadata:
             safe_copy_meta(input_image_path=input_image_path, out_image_path=output_image_path)
