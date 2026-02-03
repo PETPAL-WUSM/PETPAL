@@ -534,8 +534,27 @@ def gen_nd_image_based_on_image_list(image_list: list[ants.ANTsImage]) -> ants.A
                                 direction=direction_4d)
     return tmp_image
 
-def coerce_outpath_extension(path: str, ext: str):
-    """Coerce output path to a provided suffix."""
+def coerce_outpath_extension(path: str, ext: str) -> str:
+    """Coerce a path to the same absolute path with a provided filetype extension.
+    
+    Args:
+        path (str): Path to a file.
+        ext (str): Desired output extension.
+    
+    Returns:
+        abs_path_with_extension (str): Absolute path of the input file with the modified extension.
+    
+    Example:
+
+        .. code-block:: python
+
+            from petpal.utils.useful_functions import coerce_outpath_extension
+            
+            my_path = 'my_file.nii.gz'
+            my_csv_file = coerce_outpath_extension(my_path, '.csv')
+            print(my_csv_file) # prints '/current/working/directory/my_file.csv'
+
+    """
     path_obj = Path(path)
     while path_obj.suffix!='':
         path_obj = path_obj.with_suffix('')
