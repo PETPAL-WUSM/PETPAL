@@ -15,7 +15,7 @@ from ..utils.useful_functions import coerce_outpath_extension
 def get_tabular_separator(ext: str) -> str:
     """Get the separator corresponding to a given tabular data filetype.
     
-    '.csv' will return ',' while '.tsv' will return '\t'. Any other input will raise a
+    '.csv' will return ',' while '.tsv' and '.txt' will return '\t'. Any other input will raise a
     ValueError.
     
     Args:
@@ -27,7 +27,7 @@ def get_tabular_separator(ext: str) -> str:
     Raises:
         ValueError: If extension is not .csv or .tsv.
     """
-    matching_separators = {'.csv': ',', '.tsv': '\t'}
+    matching_separators = {'.csv': ',', '.tsv': '\t', '.txt': '\t'}
     try:
         return matching_separators[ext]
     except ValueError as exc:
@@ -45,16 +45,6 @@ class TableSaver:
     """
     def __init__(self, saver: Optional[Callable[[pd.DataFrame, str], None]] = None):
         self._saver = saver or self._atomic_save
-
-    def _atomic_save_csv(self, df: pd.DataFrame, path: str) -> None:
-        """Write CSV via a temporary file and os.replace."""
-        csv_path = coerce_outpath_extension(path=path, ext='.csv')
-        self._atomic_save(df=df, path=csv_path)
-
-    def _atomic_save_tsv(self, df: pd.DataFrame, path: str) -> None:
-        """Write CSV via a temporary file and os.replace."""
-        tsv_path = coerce_outpath_extension(path=path, ext='.tsv')
-        self._atomic_save(df=df, path=tsv_path)
 
     def _atomic_save(self, df: pd.DataFrame, path: str):
         dirpath = os.path.dirname(os.path.abspath(path)) or "."
