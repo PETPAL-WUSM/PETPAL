@@ -40,11 +40,35 @@ class TableSaver:
 
     - Default behavior writes atomically (write temp file + os.replace) to avoid partial files.
     - Accepts an injectable writer callable for testing or alternative persistence backends.
+
+    Example:
+
+        .. code-block:: python
+
+            import pandas as pd
+            from petpal.io.table import TableSaver
+
+            table_saver = TableSaver()
+            my_data = pd.DataFrame(data={'time': [0, 1, 2], 'value': [1, 4, 9]})
+            
+            # when file extension is .csv, uses commas to separate values
+            table_saver.save(my_data, 'table.csv')
+
+            # when file extension is .tsv or .txt, uses tabs to separate values
+            table_saver.save(my_data, 'table.txt')
+
+    :ivar _saver: Injectable tabular data saving function that saves a dataframe to a file.
     """
     def __init__(self, saver: Optional[Callable[[pd.DataFrame, str], None]] = None):
         self._saver = saver or self._atomic_save
 
     def _atomic_save(self, df: pd.DataFrame, path: str):
+        """Saves the data from a Pandas DataFrame object as a tabular file, such as CSV or TSV.
+        
+        Args:
+            df (pd.DataFrame): Pandas DataFrame with data to be saved.
+            path (str): Path to file where data is saved.
+        """
         dirpath = os.path.dirname(os.path.abspath(path)) or "."
         suffix = Path(path).suffix
         sep = get_tabular_separator(ext=suffix)
@@ -61,5 +85,5 @@ class TableSaver:
                     pass
 
     def save(self, df: pd.DataFrame, path: str) -> None:
-        """Public CSV write API that delegates to the configured writer."""
+        """API that applies the table saving function assigned to `self._saver`."""
         self._saver(df, path)
