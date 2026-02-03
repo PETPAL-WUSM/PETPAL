@@ -268,18 +268,18 @@ def get_window_index_pairs_from_durations(frame_durations: np.ndarray, window_du
         raise ValueError("Window duration has to be > 0")
     if window_duration > np.sum(frame_durations):
         raise ValueError("Window duration is longer than the whole scan.")
-    _tmp_w_ids = [0]
-    _w_dur_sum = 0
+    window_edge_indices = [0]
+    window_duration_rolling_sum = 0
     for frm_id, frm_dur in enumerate(frame_durations):
-        _w_dur_sum += frm_dur
-        if _w_dur_sum >= window_duration:
-            _tmp_w_ids.append(frm_id + 1)
-            _w_dur_sum = 0
-    if _tmp_w_ids[-1]!=len(frame_durations):
-        _tmp_w_ids.append(len(frame_durations))
-    w_start_ids = np.asarray(_tmp_w_ids[:-1])
-    w_end_ids = np.asarray(_tmp_w_ids[1:])
-    id_pairs = np.vstack((w_start_ids, w_end_ids))
+        window_duration_rolling_sum += frm_dur
+        if window_duration_rolling_sum >= window_duration:
+            window_edge_indices.append(frm_id + 1)
+            window_duration_rolling_sum = 0
+    if window_edge_indices[-1]!=len(frame_durations):
+        window_edge_indices.append(len(frame_durations))
+    window_start_indices = np.asarray(window_edge_indices[:-1])
+    window_end_indices = np.asarray(window_edge_indices[1:])
+    id_pairs = np.vstack((window_start_indices, window_end_indices))
     return id_pairs
 
 
