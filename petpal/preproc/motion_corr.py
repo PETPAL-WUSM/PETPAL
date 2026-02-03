@@ -16,7 +16,8 @@ from ..utils import image_io
 from ..utils.scan_timing import (ScanTimingInfo,
                                  get_window_index_pairs_from_durations,
                                  get_window_index_pairs_for_image)
-from ..utils.useful_functions import weighted_series_sum_over_window_indices
+from ..utils.useful_functions import (weighted_series_sum_over_window_indices,
+                                      coerce_outpath_extension)
 from ..utils.image_io import get_half_life_from_nifti, safe_copy_meta
 from ..io.table import TableSaver
 from ..io.image import ImageLoader
@@ -517,11 +518,19 @@ class MotionCorrect:
 
     def save_xfm_parameters(self, window_xfms: np.ndarray, filename: str):
         """Save window transform parameters as a table.
-        
+
         Args:
             window_xfms (np.ndarray): Rigid transform parameters ordered as rotation, translation,
                 centerpoint, then X, Y, Z axis, totalling 9 parameters for each window.
-            filename (str): Path to where table will be saved, including extension."""
+            filename (str): Path to where table will be saved, including extension.
+
+        Raises:
+            ValueError: If transform type does not containt 'Rigid'. Saving transform parameters is
+                currently only available for rigid transforms."""
+        if 'Rigid' not in self.reg_kwargs['type_of_transform']:
+            raise ValueError("Saving transform parameters is only available for rigid "
+                             "registrations. Current transform type: "
+                             f"{self.reg_kwargs['type_of_transform']}")
         xfm_columns = ['rot_x',
                        'rot_y',
                        'rot_z',
@@ -534,14 +543,16 @@ class MotionCorrect:
         xfms_df = pd.DataFrame(data=window_xfms,
                                columns=xfm_columns)
         xfms_df.index.name = 'window'
-        self.table_saver.save(xfms_df,filename)
+        csv_filename = coerce_outpath_extension(path=filename, ext='.csv')
+        self.table_saver.save(xfms_df,csv_filename)
 
     def __call__(self, input_image_path: str,
                  output_image_path: str,
                  motion_target_option: str | tuple,
                  window_duration: float = 300,
                  copy_metadata: bool = True,
-                 save_xfm: bool = True):
+                 save_xfm: bool = True,
+                 **reg_kwargs):
         """Motion correct a dynamic PET image.
 
         Divides image into segments of duration in seconds `window_duration` and register each frame
@@ -563,6 +574,8 @@ class MotionCorrect:
         self.get_input_scan_properties(input_image_path=input_image_path)
         self.get_target_img(input_image_path=input_image_path,
                             motion_target_option=motion_target_option)
+
+        self.set_reg_kwargs(**reg_kwargs)
 
         moco_img, window_xfms = self.run_motion_correct(window_duration=window_duration)
 
