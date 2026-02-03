@@ -279,8 +279,8 @@ def get_window_index_pairs_from_durations(frame_durations: np.ndarray, window_du
         window_edge_indices.append(len(frame_durations))
     window_start_indices = np.asarray(window_edge_indices[:-1])
     window_end_indices = np.asarray(window_edge_indices[1:])
-    id_pairs = np.vstack((window_start_indices, window_end_indices))
-    return id_pairs
+    index_pairs = np.vstack((window_start_indices, window_end_indices))
+    return index_pairs
 
 
 def get_window_index_pairs_for_image(image_path: str, window_duration: float):
