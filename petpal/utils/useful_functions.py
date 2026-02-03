@@ -539,5 +539,5 @@ def coerce_outpath_extension(path: str, ext: str):
     path_obj = Path(path)
     while path_obj.suffix!='':
         path_obj = path_obj.with_suffix('')
-    path_obj_csv_suffix = path_obj.with_suffix(ext)
-    return str(path_obj_csv_suffix.absolute())
+    path_obj_with_suffix = path_obj.with_suffix(ext)
+    return str(path_obj_with_suffix.absolute())
