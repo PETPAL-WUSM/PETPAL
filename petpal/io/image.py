@@ -17,3 +17,6 @@ class ImageLoader:
     def load(self, filename: str) -> ants.ANTsImage:
         """Public read API that delegates to the configured reader"""
         return self._loader(filename)
+
+    def __call__(self, filename: str) -> ants.ANTsImage:
+        return self.load(filename=filename)
