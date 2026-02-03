@@ -85,5 +85,10 @@ class TableSaver:
                     pass
 
     def save(self, df: pd.DataFrame, path: str) -> None:
-        """API that applies the table saving function assigned to `self._saver`."""
+        """API that applies the table saving function assigned to `self._saver`.
+        
+        Args:
+            df (pd.DataFrame): Pandas DataFrame with data to be saved.
+            path (str): Path to file where data is saved.
+        """
         self._saver(df, path)
