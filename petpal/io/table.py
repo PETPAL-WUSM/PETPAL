@@ -12,7 +12,28 @@ import pandas as pd
 from ..utils.useful_functions import coerce_outpath_extension
 
 
-SEP = {'.csv': ',', '.tsv': '\t'}
+def get_tabular_separator(ext: str) -> str:
+    """Get the separator corresponding to a given tabular data filetype.
+    
+    '.csv' will return ',' while '.tsv' will return '\t'. Any other input will raise a
+    ValueError.
+    
+    Args:
+        ext (str): Extension to get matching separator for.
+    
+    Returns:
+        sep (str): Separator matched from extension.
+    
+    Raises:
+        ValueError: If extension is not .csv or .tsv.
+    """
+    matching_separators = {'.csv': ',', '.tsv': '\t'}
+    try:
+        return matching_separators[ext]
+    except ValueError as exc:
+        error_msg = f"Only accepted extensions are {matching_separators.keys()}. Got {ext}."
+        raise ValueError(error_msg) from exc
+
 
 @dataclasses.dataclass
 class TableSaver:
@@ -23,7 +44,7 @@ class TableSaver:
     - Accepts an injectable writer callable for testing or alternative persistence backends.
     """
     def __init__(self, saver: Optional[Callable[[pd.DataFrame, str], None]] = None):
-        self._saver = saver or self._atomic_save_csv
+        self._saver = saver or self._atomic_save
 
     def _atomic_save_csv(self, df: pd.DataFrame, path: str) -> None:
         """Write CSV via a temporary file and os.replace."""
@@ -38,10 +59,11 @@ class TableSaver:
     def _atomic_save(self, df: pd.DataFrame, path: str):
         dirpath = os.path.dirname(os.path.abspath(path)) or "."
         suffix = Path(path).suffix
+        sep = get_tabular_separator(ext=suffix)
         fd, tmp_path = tempfile.mkstemp(prefix="tmp_petpal_", dir=dirpath, suffix=suffix)
         os.close(fd)
         try:
-            df.to_csv(tmp_path, sep=SEP[suffix])
+            df.to_csv(tmp_path, sep=sep)
             os.replace(tmp_path, path)
         finally:
             if os.path.exists(tmp_path):
