@@ -468,10 +468,10 @@ class MotionCorrect:
                                                      input_image_path=input_image_path)
         self.target_img = self.image_loader.load(filename=motion_target_path)
 
-    def window_index_pairs(self, window_dur_sec: float=300):
+    def window_index_pairs(self, window_duration: float=300):
         """The pair of indices corresponding to each window in the image."""
         return get_window_index_pairs_from_durations(frame_durations=self.scan_timing.duration,
-                                                     window_duration=window_dur_sec)
+                                                     window_duration=window_duration)
 
     def window_target_img(self, start_index: int, end_index: int):
         """Calculates the sum over frames in the target image within the provided time window."""
@@ -496,12 +496,12 @@ class MotionCorrect:
         xfm_out = list(rot_pars)+list(translate_matrix)+list(ants_xfm.fixed_parameters)
         return xfm_out
 
-    def run_motion_correct(self, window_dur_sec: float=300):
+    def run_motion_correct(self, window_duration: float=300):
         """Run motion correction on the input image to the target image."""
         moco_img_stack = []
         window_xfm_stack = []
         input_img_list = ants.ndimage_to_list(self.input_img)
-        for _, (st_id, end_id) in enumerate(zip(*self.window_index_pairs(window_dur_sec=window_dur_sec))):
+        for _, (st_id, end_id) in enumerate(zip(*self.window_index_pairs(window_duration=window_duration))):
             window_target_img = self.window_target_img(start_index=st_id, end_index=end_id)
             window_registration = ants.registration(fixed=self.target_img,
                                                     moving=window_target_img,
@@ -539,12 +539,12 @@ class MotionCorrect:
     def __call__(self, input_image_path: str,
                  output_image_path: str,
                  motion_target_option: str | tuple,
-                 window_dur_sec: float = 300,
+                 window_duration: float = 300,
                  copy_metadata: bool = True,
                  save_xfm: bool = True):
         """Motion correct a dynamic PET image.
 
-        Divides image into segments of duration in seconds `window_dur_sec` and register each frame
+        Divides image into segments of duration in seconds `window_duration` and register each frame
         to a target image, using the same transformation on for every frame in each window.
 
         Args:
@@ -553,7 +553,7 @@ class MotionCorrect:
             motion_target_option (str | tuple): Path to motion target image, or specify time window
                 such as (0,600) or preset option such as 'mean_image'. See
                 :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
-            window_dur_sec (float): Duration of each window in seconds. Default 300.
+            window_duration (float): Duration of each window in seconds. Default 300.
             copy_metadata (bool): Copies metadata info from input image to output image. Default
                 True.
             save_xfm (bool): Saves motion correction transform parameters for translation,
@@ -564,7 +564,7 @@ class MotionCorrect:
         self.get_target_img(input_image_path=input_image_path,
                             motion_target_option=motion_target_option)
 
-        moco_img, window_xfms = self.run_motion_correct(window_dur_sec=window_dur_sec)
+        moco_img, window_xfms = self.run_motion_correct(window_duration=window_duration)
 
         if save_xfm:
             self.save_xfm_parameters(window_xfms=window_xfms, filename=output_image_path)
@@ -641,7 +641,7 @@ def _get_list_of_frames_above_total_mean(image_4d_path: str,
 def windowed_motion_corr_to_target(input_image_path: str,
                                    out_image_path: str | None,
                                    motion_target_option: str | tuple,
-                                   w_size: float,
+                                   window_duration: float,
                                    type_of_transform: str = 'QuickRigid',
                                    interpolator: str = 'linear',
                                    copy_metadata: bool = True,
@@ -668,7 +668,7 @@ def windowed_motion_corr_to_target(input_image_path: str,
         motion_target_option (str | tuple): Option to determine the motion target. This can
             be a path to a specific image file, a tuple of frame indices to generate a target, or
             specific options recognized by :func:`determine_motion_target`.
-        w_size (float): Window size in seconds for dividing the image into time sections.
+        window_duration (float): Window size in seconds for dividing the image into time sections.
         type_of_transform (str): Type of transformation to use in registration (default: 'QuickRigid').
         interpolator (str): Interpolation method for the transformation (default: 'linear').
         **kwargs: Additional arguments passed to :func:`ants.registration`.
@@ -678,7 +678,7 @@ def windowed_motion_corr_to_target(input_image_path: str,
 
     Workflow:
         1. Reads the input 4D image and splits it into individual frames.
-        2. Computes index windows based on the specified window size (`w_size`).
+        2. Computes index windows based on the specified window size (`window_duration`).
         3. Extracts necessary frame timing information and the tracer's half-life.
         4. For each window:
             - Calculates a weighted sum image for the window.
@@ -693,7 +693,7 @@ def windowed_motion_corr_to_target(input_image_path: str,
     """
     input_image = ants.image_read(filename=input_image_path)
     input_image_list = ants.ndimage_to_list(input_image)
-    window_idx_pairs = get_window_index_pairs_for_image(image_path=input_image_path, w_size=w_size)
+    window_idx_pairs = get_window_index_pairs_for_image(image_path=input_image_path, window_duration=window_duration)
     half_life = get_half_life_from_nifti(image_path=input_image_path)
     frame_timing_info = ScanTimingInfo.from_nifti(image_path=input_image_path)
 

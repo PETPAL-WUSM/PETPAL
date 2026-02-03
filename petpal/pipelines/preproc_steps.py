@@ -642,7 +642,7 @@ class ImageToImageStep(FunctionBasedStep):
         """
         defaults = dict(name=name, function=windowed_motion_corr_to_target,
                         input_image_path='', output_image_path='',
-                        motion_target_option='weighted_series_sum', w_size=60.0,
+                        motion_target_option='weighted_series_sum', window_duration=60.0,
                         verbose=verbose)
         override_dict = defaults | overrides
         try:

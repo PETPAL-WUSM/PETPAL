@@ -464,7 +464,7 @@ def main():
             motion_corrector(input_image_path=args.input_img,
                              output_image_path=args.out_img,
                              motion_target_option=motion_target,
-                             window_dur_sec=args.window_size)
+                             window_duration=args.window_size)
         case 'rescale_image':
             input_img = ants.image_read(filename=args.input_img)
             out_img = image_operations_4d.rescale_image(input_image=input_img,

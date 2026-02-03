@@ -261,11 +261,11 @@ def get_window_index_pairs_from_durations(frame_durations: np.ndarray, window_du
             and the second row contains end indices for each window.
 
     Raises:
-        ValueError: If `w_size` is less than or equal to 0.
-        ValueError: If `w_size` is greater than the total duration of all frames.
+        ValueError: If `window_duration` is less than or equal to 0.
+        ValueError: If `window_duration` is greater than the total duration of all frames.
     """
     if window_duration <= 0:
-        raise ValueError("Window size has to be > 0")
+        raise ValueError("Window duration has to be > 0")
     if window_duration > np.sum(frame_durations):
         raise ValueError("Window duration is longer than the whole scan.")
     _tmp_w_ids = [0]
