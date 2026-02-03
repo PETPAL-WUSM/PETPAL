@@ -471,7 +471,7 @@ class MotionCorrect:
     def window_index_pairs(self, window_dur_sec: float=300):
         """The pair of indices corresponding to each window in the image."""
         return get_window_index_pairs_from_durations(frame_durations=self.scan_timing.duration,
-                                                     w_size=window_dur_sec)
+                                                     window_duration=window_dur_sec)
 
     def window_target_img(self, start_index: int, end_index: int):
         """Calculates the sum over frames in the target image within the provided time window."""
