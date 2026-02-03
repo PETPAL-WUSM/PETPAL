@@ -1,5 +1,5 @@
 """
-Module for reading and writing images
+Module for loading and saving images
 """
 from typing import Optional
 from collections.abc import Callable
