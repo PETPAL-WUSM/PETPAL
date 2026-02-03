@@ -270,10 +270,10 @@ def get_window_index_pairs_from_durations(frame_durations: np.ndarray, window_du
         raise ValueError("Window duration is longer than the whole scan.")
     window_edge_indices = [0]
     window_duration_rolling_sum = 0
-    for frm_id, frm_dur in enumerate(frame_durations):
-        window_duration_rolling_sum += frm_dur
+    for frame_index, frame_dur in enumerate(frame_durations):
+        window_duration_rolling_sum += frame_dur
         if window_duration_rolling_sum >= window_duration:
-            window_edge_indices.append(frm_id + 1)
+            window_edge_indices.append(frame_index + 1)
             window_duration_rolling_sum = 0
     if window_edge_indices[-1]!=len(frame_durations):
         window_edge_indices.append(len(frame_durations))
