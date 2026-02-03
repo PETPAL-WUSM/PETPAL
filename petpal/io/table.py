@@ -9,8 +9,6 @@ from pathlib import Path
 import dataclasses
 import pandas as pd
 
-from ..utils.useful_functions import coerce_outpath_extension
-
 
 def get_tabular_separator(ext: str) -> str:
     """Get the separator corresponding to a given tabular data filetype.
