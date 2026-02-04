@@ -149,6 +149,5 @@ def test_negative_time_and_float_half_life():
 def test_window_index_pair_uses_full_image():
     durations = np.array([100,100,100,300,120])
     window_indices = get_window_index_pairs_from_durations(frame_durations=durations, window_duration=300)
-    print(window_indices)
     indices_expected = np.vstack(([0,3,4],[3,4,5]))
     np.testing.assert_allclose(window_indices, indices_expected)
