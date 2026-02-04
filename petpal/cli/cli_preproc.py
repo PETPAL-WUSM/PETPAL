@@ -321,12 +321,11 @@ def _generate_args() -> argparse.ArgumentParser:
                                                help='Windowed motion correction for 4D PET'
                                                     ' using ANTS')
     _add_common_args(parser_window_moco)
-    parser_window_moco.add_argument('-t',
-                                    '--motion-target',
-                                    default='weighted_series_sum',
-                                    type=str,
-                                    help="Motion target option. Can be an image path , "
-                                         "'weighted_series_sum' or 'mean_image'")
+    parser_window_moco.add_argument('--motion-target', default=None, nargs='+',
+                            help="Motion target option. Can be an image path, "
+                                 "'weighted_series_sum' or a tuple "
+                                 "(i.e. '--motion-target 0 600' for first ten minutes).",
+                            required=True)
     parser_window_moco.add_argument('-w', '--window-size', default=60.0, type=float,
                                     help="Window size in seconds.",)
     xfm_types = ['QuickRigid', 'Rigid', 'DenseRigid', 'Affine', 'AffineFast']
