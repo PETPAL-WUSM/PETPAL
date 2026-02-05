@@ -321,12 +321,11 @@ def _generate_args() -> argparse.ArgumentParser:
                                                help='Windowed motion correction for 4D PET'
                                                     ' using ANTS')
     _add_common_args(parser_window_moco)
-    parser_window_moco.add_argument('-t',
-                                    '--motion-target',
-                                    default='weighted_series_sum',
-                                    type=str,
-                                    help="Motion target option. Can be an image path , "
-                                         "'weighted_series_sum' or 'mean_image'")
+    parser_window_moco.add_argument('--motion-target', default=None, nargs='+',
+                            help="Motion target option. Can be an image path, "
+                                 "'weighted_series_sum' or a tuple "
+                                 "(i.e. '--motion-target 0 600' for first ten minutes).",
+                            required=True)
     parser_window_moco.add_argument('-w', '--window-size', default=60.0, type=float,
                                     help="Window size in seconds.",)
     xfm_types = ['QuickRigid', 'Rigid', 'DenseRigid', 'Affine', 'AffineFast']
@@ -460,11 +459,11 @@ def main():
                                        start_time=args.start_time,
                                        end_time=args.end_time)
         case 'windowed_motion_corr':
-            motion_corr.windowed_motion_corr_to_target(input_image_path=args.input_img,
-                                                    out_image_path=args.out_img,
-                                                    motion_target_option=motion_target,
-                                                    w_size=args.window_size,
-                                                    type_of_transform=args.transform_type)
+            motion_corrector = motion_corr.MotionCorrect()
+            motion_corrector(input_image_path=args.input_img,
+                             output_image_path=args.out_img,
+                             motion_target_option=motion_target,
+                             window_duration=args.window_size)
         case 'rescale_image':
             input_img = ants.image_read(filename=args.input_img)
             out_img = image_operations_4d.rescale_image(input_image=input_img,

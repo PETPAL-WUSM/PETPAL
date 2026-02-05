@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from petpal.utils.scan_timing import calculate_frame_reference_time
 from petpal.preproc.decay_correction import calculate_frame_decay_factor
-from petpal.utils.scan_timing import ScanTimingInfo
+from petpal.utils.scan_timing import ScanTimingInfo, get_window_index_pairs_from_durations
 
 
 def test_from_metadata_with_all_keys():
@@ -144,3 +144,10 @@ def test_negative_time_and_float_half_life():
     out = calculate_frame_decay_factor(times, half_life)
     expected = np.array([0.5, 1.0, 2.0])
     np.testing.assert_allclose(out, expected, rtol=1e-12, atol=0)
+
+
+def test_window_index_pair_uses_full_image():
+    durations = np.array([100,100,100,300,120])
+    window_indices = get_window_index_pairs_from_durations(frame_durations=durations, window_duration=300)
+    indices_expected = np.vstack(([0,3,4],[3,4,5]))
+    np.testing.assert_allclose(window_indices, indices_expected)
