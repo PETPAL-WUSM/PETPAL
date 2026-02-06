@@ -9,7 +9,7 @@ def brain_mask_pet(input_image_path: str,
                    out_image_path: str | None,
                    atlas_image_path: str,
                    atlas_mask_path: str,
-                   motion_target_option='mean_image') -> ants.ANTsImage:
+                   motion_target_option='weighted_series_sum') -> ants.ANTsImage:
     """
     Apply brain mask to dynamic PET image.
     
@@ -23,7 +23,8 @@ def brain_mask_pet(input_image_path: str,
         out_image_path (str): Path to which brain mask in PET space is written.
         atlas_image_path (str): Path to anatomical atlas image.
         atlas_mask_path (str): Path to brain mask in atlas space.
-        motion_target_option: Used to determine 3D target in PET space. Default 'mean_image'.
+        motion_target_option: Used to determine 3D target in PET space. Default
+            'weighted_series_sum'.
 
     Returns:
         pet_masked_image (ants.ANTsImage): Dynamic PET image masked to brain only.
