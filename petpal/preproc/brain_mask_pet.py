@@ -3,6 +3,7 @@
 import ants
 from .motion_target import determine_motion_target
 from .motion_corr import gen_timeseries_from_image_list
+from ..utils.image_io import safe_copy_meta
 
 def brain_mask_pet(input_image_path: str,
                    out_image_path: str | None,
@@ -58,6 +59,7 @@ def brain_mask_pet(input_image_path: str,
     pet_masked_img = gen_timeseries_from_image_list(image_list=pet_masked_img_list)
 
     if out_image_path is not None:
+        safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
         ants.image_write(image=pet_masked_img,filename=out_image_path)
-    
+
     return pet_masked_img
