@@ -2,16 +2,20 @@
 """
 import ants
 from .motion_target import determine_motion_target
+from .motion_corr import gen_timeseries_from_image_list
 
 def brain_mask_pet(input_image_path: str,
-                   out_image_path: str,
+                   out_image_path: str | None,
                    atlas_image_path: str,
                    atlas_mask_path: str,
-                   motion_target_option='mean_image'):
+                   motion_target_option='mean_image') -> ants.ANTsImage:
     """
-    Create a brain mask for a PET image. Create target PET image, which is then warped to a
+    Apply brain mask to dynamic PET image.
+    
+    Create target PET image, which is then warped to a
     provided anatomical atlas. The transformation to atlas space is then applied to transform a
-    provided mask in atlas space into PET space. This mask can then by used in various operations.
+    provided mask in atlas space into PET space. Mask is applied to input dynamic PET, optionally
+    saved to out_image_path, and returned.
 
     Args:
         input_image_path (str): Path to input 4D PET image.
@@ -19,7 +23,10 @@ def brain_mask_pet(input_image_path: str,
         atlas_image_path (str): Path to anatomical atlas image.
         atlas_mask_path (str): Path to brain mask in atlas space.
         motion_target_option: Used to determine 3D target in PET space. Default 'mean_image'.
-    
+
+    Returns:
+        pet_masked_image (ants.ANTsImage): Dynamic PET image masked to brain only.
+
     Note:
         Requires access to an anatomical atlas or scan with a corresponding brain mask on said
         anatomical data. FSL users can use the MNI152 atlas and mask available at 
@@ -41,5 +48,16 @@ def brain_mask_pet(input_image_path: str,
         transformlist=xfm['invtransforms'],
         interpolator='nearestNeighbor'
     )
-    mask = mask_on_pet.get_mask()
-    ants.image_write(image=mask,filename=out_image_path)
+    mask_img = mask_on_pet.get_mask()
+
+    pet_img = ants.image_read(filename=input_image_path)
+    pet_img_list = ants.ndimage_to_list(pet_img)
+    pet_masked_img_list = []
+    for frame in pet_img_list:
+        pet_masked_img_list.append(ants.mask_image(image=frame, mask=mask_img))
+    pet_masked_img = gen_timeseries_from_image_list(image_list=pet_masked_img_list)
+
+    if out_image_path is not None:
+        ants.image_write(image=pet_masked_img,filename=out_image_path)
+    
+    return pet_masked_img
