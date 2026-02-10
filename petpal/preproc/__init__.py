@@ -9,6 +9,7 @@ from . import symmetric_geometric_transfer_matrix
 from . import segmentation_tools
 from . import decay_correction
 from . import regional_tac_extraction
+from . import brain_mask_pet
 
 def main():
     print("PETPAL - Pre-processing")

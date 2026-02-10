@@ -105,7 +105,8 @@ from ..preproc import (image_operations_4d,
                        register,
                        regional_tac_extraction,
                        standard_uptake_value,
-                       segmentation_tools)
+                       segmentation_tools,
+                       brain_mask_pet)
 
 
 _PREPROC_EXAMPLES_ = r"""
@@ -136,6 +137,8 @@ Examples:
     petpal-preproc seg-crop -i /path/to/input_img.nii.gz -o petpal_cropped_seg.nii.gz --segmentation /path/to/segmentation.nii.gz
   - Add eroded white matter region to segmentation image:
     petpal-preproc eroded-wm -i /path/to/input_segmentation.nii.gz -o petpal_seg_with_eroded_wm.nii.gz
+  - Apply brain mask to PET image:
+    petpal-preproc brain-mask-pet -i /path/to/input_img.nii.gz -o petpal_brain_masked.nii.gz --atlas $FSLDIR/data/standard/MNI152_T1_1mm.nii.gz --mask $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask.nii.gz
 """
 
 
@@ -244,18 +247,26 @@ def _generate_args() -> argparse.ArgumentParser:
     parser_tac.add_argument('-l',
                             '--label-map',
                             required=True,
-                            help='Label map for the seg image, either a preset option or path to a json file.'
-                                 'E.g. freesurfer, freesurfer_merge_lr, perlcyno, perlcyno_merge_lr, /path/to/my_label_map.json.')
+                            help='Label map for the seg image, either a preset option or path to a '
+                                 'json file. E.g. freesurfer, freesurfer_merge_lr, perlcyno, '
+                                 'perlcyno_merge_lr, /path/to/my_label_map.json.')
     parser_tac.add_argument('-x',
                             '--excel',
                             action='store_true',
                             required=False,
                             default=False,
-                            help='Option to store results as a single file table instead of one TAC file per region.')
+                            help='Option to store results as a single file table instead of one '
+                                 'TAC file per region.')
 
     parser_oldtac = subparsers.add_parser('write-tacs-old',
-                                          help='DEPRECATED Write ROI TACs from 4D PET using segmentation masks. Uses `dseg.tsv`file as label map.')
-    parser_oldtac.add_argument('-i', '--input-img',required=True,help='Path to input image.',type=str)
+                                          help='DEPRECATED Write ROI TACs from 4D PET using '
+                                               'segmentation masks. Uses `dseg.tsv`file as label '
+                                               'map.')
+    parser_oldtac.add_argument('-i',
+                               '--input-img',
+                               required=True,
+                               help='Path to input image.',
+                               type=str)
     parser_oldtac.add_argument('-o',
                             '--out-tac-dir',
                             default='petpal_tacs',
@@ -376,8 +387,22 @@ def _generate_args() -> argparse.ArgumentParser:
                                  type=str)
 
     parser_eroded_wm = subparsers.add_parser('eroded-wm',
-                                             help='Add eroded white matter region to segmentation image')
+                                             help='Add eroded white matter region to segmentation '
+                                                  'image')
     _add_common_args(parser_eroded_wm)
+
+    parser_brain_mask = subparsers.add_parser('brain-mask-pet',
+                                              help='Apply brain mask to dynamic PET image')
+    _add_common_args(parser_brain_mask)
+    parser_brain_mask.add_argument('--atlas',
+                                   required=True,
+                                   help='Path to atlas template image. Can be PET or anatomical '
+                                         'based.',
+                                   type=str)
+    parser_brain_mask.add_argument('--mask',
+                                   required=True,
+                                   help='Path to brain mask in atlas space.',
+                                   type=str)
 
     return parser
 
@@ -485,6 +510,11 @@ def main():
         case 'eroded_wm':
             segmentation_tools.eroded_wm_segmentation(input_segmentation_path=args.input_img,
                                                       out_segmentation_path=args.out_img)
+        case 'brain_mask_pet':
+            brain_mask_pet.brain_mask_pet(input_image_path=args.input_img,
+                                          out_image_path=args.out_img,
+                                          atlas_image_path=args.atlas,
+                                          atlas_mask_path=args.mask)
 
 if __name__ == "__main__":
     main()
