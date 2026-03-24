@@ -167,12 +167,14 @@ def scale_frames(input_img: ants.ANTsImage, scalar_arr: np.ndarray[float]):
 
 
 class DecayCorrect:
-    """Decay correct or uncorrect each frame in a dynamic PET scan."""
+    """Decay correct or uncorrect each frame in a dynamic PET scan.
+    
+    :ivar image_loader: The image loader to use.
+    :ivar modified_pet_img: The corrected PET image."""
     def __init__(self,
                  image_loader: Optional[ImageLoader] = None):
         self.image_loader = image_loader or ImageLoader()
         self.modified_pet_img: ants.ANTsImage = None
-        self.modified_pet_json: dict = None
 
     def apply_factor(self,
                      input_image_path: str,
