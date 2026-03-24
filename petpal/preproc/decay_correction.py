@@ -258,3 +258,9 @@ class DecayFix(DecayCorrect):
                           correction_factor=correction_factor)
         self.save_modified_pet(input_image_path=input_image_path,
                                output_image_path=output_image_path)
+
+def main():
+    auto_cli(petpal_class=DecayFix)
+
+if __name__=='__main__':
+    main()
