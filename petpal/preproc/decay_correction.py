@@ -179,13 +179,24 @@ class DecayCorrect:
     def apply_factor(self,
                      input_image_path: str,
                      correction_factor: np.ndarray[float]):
-        """Apply fix factor to image and write output"""
+        """Apply fix factor to image and write output.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            correction_factor_path (str): Path to file with correction factors, one per frame. 
+                File must have exactly one column, with a header followed by one scalar per
+                line."""
 
         input_img = self.image_loader.load(filename=input_image_path)
         self.modified_pet_img = scale_frames(input_img=input_img, scalar_arr=correction_factor)
     
     def save_modified_pet(self, input_image_path: str, output_image_path: str):
-        """Save the modified PET image"""
+        """Save the modified PET image
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            output_image_path (str): Path to where corrected image is saved.
+        """
         ants.image_write(self.modified_pet_img, output_image_path)
         safe_copy_meta(input_image_path,out_image_path=output_image_path)
 
