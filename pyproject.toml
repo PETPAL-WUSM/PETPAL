@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "petpal"
-version = "0.6.4"
+version = "0.6.5"
 description = "PET-PAL (Positron Emission Tomography Processing and Analysis Library)"
 authors = [
     {name = "Noah Goldman", email = "noahg@wustl.edu"},
@@ -58,6 +58,7 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-pvc = "petpal.cli.cli_pvc:main"
     petpal-plot-tacs = "petpal.cli.cli_plot_tacs:main"
     petpal-pet-stats = "petpal.cli.cli_stats:main"
+    petpal-decay-correct = "petpal.preproc.decay_correction:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"

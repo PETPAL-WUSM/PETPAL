@@ -2,15 +2,19 @@
 Provides functions for undo-ing decay correction and recalculating it.
 
 """
-
+from typing import Optional
 import math
 
 import ants
 import numpy as np
+import pandas as pd
 
 from ..utils import image_io
 from ..utils.scan_timing import ScanTimingInfo
-
+from ..io.image import ImageLoader
+from ..utils.image_io import safe_copy_meta
+from petpal.utils.constants import HALF_LIVES
+from ..meta.auto_cli import auto_cli
 
 def undo_decay_correction(input_image_path: str,
                           output_image_path: str,
@@ -148,3 +152,126 @@ def calculate_frame_decay_factor(frame_reference_time: np.ndarray,
     decay_constant = np.log(2)/half_life
     frame_decay_factor = np.exp((decay_constant)*frame_reference_time)
     return frame_decay_factor
+
+
+def scale_frames(input_img: ants.ANTsImage, scalar_arr: np.ndarray[float]):
+    nframes = input_img.shape[-1]
+    nscalar = len(scalar_arr)
+    if nframes!=nscalar:
+        raise ValueError(f"Length of correction factors ({nscalar}) does not "
+                         f"match number of frames in dynamic PET ({nframes}).")
+    modified_arr = ants.image_clone(input_img)
+    for frame, scalar in enumerate(scalar_arr):
+        modified_arr[:,:,:,frame] *= scalar
+    return modified_arr
+
+
+class DecayCorrect:
+    """Decay correct or uncorrect each frame in a dynamic PET scan.
+    
+    :ivar image_loader: The image loader to use.
+    :ivar modified_pet_img: The corrected PET image."""
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        self.image_loader = image_loader or ImageLoader()
+        self.modified_pet_img: ants.ANTsImage = None
+
+    def apply_factor(self,
+                     input_image_path: str,
+                     correction_factor: np.ndarray[float]):
+        """Apply fix factor to image and write output.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            correction_factor_path (str): Path to file with correction factors, one per frame. 
+                File must have exactly one column, with a header followed by one scalar per
+                line."""
+
+        input_img = self.image_loader.load(filename=input_image_path)
+        self.modified_pet_img = scale_frames(input_img=input_img, scalar_arr=correction_factor)
+    
+    def save_modified_pet(self, input_image_path: str, output_image_path: str):
+        """Save the modified PET image
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            output_image_path (str): Path to where corrected image is saved.
+        """
+        ants.image_write(self.modified_pet_img, output_image_path)
+        safe_copy_meta(input_image_path,out_image_path=output_image_path)
+
+    def decay_correct_factor_from_file(self,
+                                       input_image_path: str,
+                                       output_image_path: str,
+                                       correction_factor_path: str):
+        """Apply a set of correction factors to each frame in a PET image.
+        
+        Provide path to dynamic PET image, path to where corrected image is saved, and path to a
+        file containing factors for each frame. File containing correction factors must have
+        exactly one column, with a header followed by one scalar per line to apply to the
+        corresponding frame in the PET. Reads image and correction factors, applies them, and saves
+        result.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            output_image_path (str): Path to where corrected image is saved.
+            correction_factor_path (str): Path to file with correction factors, one per frame. 
+                File must have exactly one column, with a header followed by one scalar per
+                line.
+        """
+        correction_factor = pd.read_csv(correction_factor_path,index_col=False).iloc[:,0]
+        self.apply_factor(input_image_path=input_image_path,
+                          correction_factor=correction_factor)
+        self.save_modified_pet(input_image_path=input_image_path,
+                               output_image_path=output_image_path)
+
+
+class DecayFix(DecayCorrect):
+    """Special case for decay correction where the dynamic PET image was scaled with the wrong
+    isotope but JSON metadata retains accurate decay correction factors."""
+    def fix_factor(self,
+                   input_image_path: str,
+                   isotope_to_remove: str) -> np.ndarray[float]:
+        """Get ratio of the expected decay correction factor to the factor that was incorrectly
+        applied to PET image.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            isotope_to_remove (str): Name of the isotope that was incorrectly used to scale dynamic
+                PET image, such as 'o15' or 'c11'.
+        
+        Returns:
+            fix_factor (np.ndarray[float]): Scalar array with the correction factor to apply to
+                each frame in dynamic PET.
+        """
+        scan_timing = ScanTimingInfo.from_nifti(input_image_path)
+        decay_expected = scan_timing.decay
+        decay_applied = calculate_frame_decay_factor(scan_timing.center,
+                                                     HALF_LIVES[isotope_to_remove])
+        return decay_expected/decay_applied
+
+    def __call__(self,                 
+                input_image_path: str,
+                output_image_path: str,
+                isotope_to_remove: str):
+        """Calculate correction factor based on the accurate metadata and name of the isotope
+        incorrectly used to scale image data.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            output_image_path (str): Path to where corrected image is saved.
+            isotope_to_remove (str): Name of the isotope that was incorrectly used to scale dynamic
+                PET image, such as 'o15' or 'c11'.
+        """
+        correction_factor = self.fix_factor(input_image_path=input_image_path,
+                                            isotope_to_remove=isotope_to_remove)
+        self.apply_factor(input_image_path=input_image_path,
+                          correction_factor=correction_factor)
+        self.save_modified_pet(input_image_path=input_image_path,
+                               output_image_path=output_image_path)
+
+def main():
+    auto_cli(petpal_class=DecayFix)
+
+if __name__=='__main__':
+    main()

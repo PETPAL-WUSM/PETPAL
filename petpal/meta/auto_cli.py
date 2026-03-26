@@ -124,8 +124,9 @@ def auto_cli(petpal_class: object):
                 # Creates CLI for class my_class
                 # __call__ args are interpreted as required arguments
                 # **kwargs is interpreted as optional keyword arguments
-                # usage: petpal my-class --mri-img-path [MRI_IMG_PATH] \
+                # usage: python my_class.py my-class --mri-img-path [MRI_IMG_PATH] \\
                 #          --pet-img-path [PET_IMG_PATH] --kwargs [kwarg1=val1 kwarg2=val2 ...]
+                # Add file path to pyproject.toml to generate a command shortcut
 
                 auto_cli(petpal_class=my_class)
 

@@ -68,7 +68,6 @@ autoapi_options = [
     'show-module-summary'
 ]
 
-autoapi_ignore = ['*cli*']
 autoapi_own_page_level = 'function'
 autoapi_template_dir = '_templates'
 autoapi_python_class_content = 'both'
