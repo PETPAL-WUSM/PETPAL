@@ -169,13 +169,13 @@ def auto_cli(petpal_class: object):
         elif arg_and_type[0].startswith('**'):
             kwarg_name = arg_and_type[0].replace('**','--').replace('_','-')
             parser.add_argument(kwarg_name, nargs='*', action=ParseKwargs, required=False)
-    parser.add_argument('--log',type=str,default=None,required=False)
+    parser.add_argument('--logfile',type=str,default=None,required=False)
 
     args = parser.parse_args()
     arg_vals = args_kwargs_to_dictionary(args=args)
 
-    logger = PetpalLogging(logfile=arg_vals['log'])
-    arg_vals.pop('log')
+    logger = PetpalLogging(logfile=arg_vals['logfile'])
+    arg_vals.pop('logfile')
 
     init_class = petpal_class()
     init_class(**arg_vals)
