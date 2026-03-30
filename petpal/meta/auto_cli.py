@@ -83,7 +83,9 @@ class ParseKwargs(argparse.Action):
 class PetpalLogging:
     """Tool for logging CLI commands.
     
-    Records PETPAL CLI commands in a log file."""
+    Records PETPAL CLI commands in a log file. Creates a new logfile at the provided path, if one 
+    does not already exist. If it points to an existing file, any logging is added to the bottom of
+    the file. Logs command line arguments only."""
     def __init__(self, logfile: str=None):
         if logfile is not None:
             logging.basicConfig(filename=logfile, level=logging.INFO, format='')
@@ -92,6 +94,11 @@ class PetpalLogging:
             self.log_cli_args()
 
     def log_cli_args(self):
+        """Log the command line that was used to run PETPAL.
+        
+        Records the literal PETPAL command line tool, and any interpolated variables as they are
+        interpreted by Python.
+        """
         self.logger.info(' '.join(self.cli_args))
 
 
