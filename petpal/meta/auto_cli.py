@@ -1,6 +1,9 @@
 """Wrappers for generating CLI functions from PETPAL callable objects"""
 import argparse
+import logging
 import inspect
+import sys
+import copy
 from pydoc import locate
 
 
@@ -77,6 +80,28 @@ class ParseKwargs(argparse.Action):
             getattr(namespace, self.dest)[kwarg_name] = kwarg_locator(kwarg_value)
 
 
+class PetpalLogging:
+    """Tool for logging CLI commands.
+    
+    Records PETPAL CLI commands in a log file. Creates a new logfile at the provided path, if one 
+    does not already exist. If it points to an existing file, any logging is added to the bottom of
+    the file. Logs command line arguments only."""
+    def __init__(self, logfile: str=None):
+        if logfile is not None:
+            logging.basicConfig(filename=logfile, level=logging.INFO, format='')
+            self.logger = logging.getLogger('')
+            self.cli_args = copy.deepcopy(sys.argv)
+            self.log_cli_args()
+
+    def log_cli_args(self):
+        """Log the command line that was used to run PETPAL.
+        
+        Records the literal PETPAL command line tool, and any interpolated variables as they are
+        interpreted by Python.
+        """
+        self.logger.info(' '.join(self.cli_args))
+
+
 def auto_cli(petpal_class: object):
     """Generate a command line interface for a PETPAL function
     
@@ -151,8 +176,13 @@ def auto_cli(petpal_class: object):
         elif arg_and_type[0].startswith('**'):
             kwarg_name = arg_and_type[0].replace('**','--').replace('_','-')
             parser.add_argument(kwarg_name, nargs='*', action=ParseKwargs, required=False)
+    parser.add_argument('--logfile',type=str,default=None,required=False)
+
     args = parser.parse_args()
     arg_vals = args_kwargs_to_dictionary(args=args)
+
+    logger = PetpalLogging(logfile=arg_vals['logfile'])
+    arg_vals.pop('logfile')
 
     init_class = petpal_class()
     init_class(**arg_vals)
