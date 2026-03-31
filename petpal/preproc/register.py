@@ -321,8 +321,8 @@ class RegisterBase:
         self.scan_timing = None
         self.half_life = None
         self.reg_kwargs = self.default_reg_kwargs
-    
-    
+
+
     @property
     def default_reg_kwargs(self) -> dict:
         """Default registration arguments passed on to :py:func:`~ants.registration`."""

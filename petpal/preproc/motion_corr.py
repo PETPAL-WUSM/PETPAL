@@ -218,7 +218,7 @@ class MotionCorrect(RegisterBase):
 
 def windowed_motion_corr_to_target(input_image_path: str,
                                    out_image_path: str | None,
-                                   motion_target_option: str | tuple,
+                                   motion_target_option: str,
                                    window_duration: float,
                                    type_of_transform: str = 'QuickRigid',
                                    interpolator: str = 'linear',

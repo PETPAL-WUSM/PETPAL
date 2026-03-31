@@ -112,13 +112,11 @@ def type_identifier(arg_type_name: str) -> tuple:
     arg_type = locate(arg_split_default[0])
     nargs = 1
     arg_split_union = arg_split_default[0].split(' | ')
-    if len(arg_split_union)>1:
-        arg_type = float
-        if 'tuple' in arg_split_union:
-            nargs = 2
-        elif 'list' in arg_split_union:
+    ntypes = len(arg_split_union)
+    for atype in ntypes:
+        if 'tuple' or 'list' in atype:
             nargs = '+'
-    
+
     return arg_type, nargs, arg_default
 
 
