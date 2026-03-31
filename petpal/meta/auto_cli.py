@@ -113,7 +113,7 @@ def type_identifier(arg_type_name: str) -> tuple:
     nargs = 1
     arg_split_union = arg_split_default[0].split(' | ')
     ntypes = len(arg_split_union)
-    for atype in ntypes:
+    for atype in arg_split_union:
         if 'tuple' or 'list' in atype:
             nargs = '+'
 
