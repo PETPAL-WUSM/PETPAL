@@ -171,7 +171,7 @@ class MotionCorrect(RegisterBase):
     def __call__(self,
                  input_image_path: str,
                  output_image_path: str,
-                 motion_target_option: str | tuple,
+                 motion_target_option: str,
                  window_duration: float = 300,
                  transform_type: str = 'DenseRigid',
                  **reg_kwargs) -> ants.ANTsImage:
