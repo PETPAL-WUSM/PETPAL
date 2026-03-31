@@ -114,8 +114,11 @@ def type_identifier(arg_type_name: str) -> tuple:
     arg_split_union = arg_split_default[0].split(' | ')
     ntypes = len(arg_split_union)
     for atype in arg_split_union:
-        if 'tuple' or 'list' in atype:
+        if 'list' in atype or 'tuple' in atype:
             nargs = '+'
+
+    if arg_type==str and arg_default is not None:
+        arg_default = arg_default.replace("'","")
 
     return arg_type, nargs, arg_default
 
@@ -191,11 +194,14 @@ def auto_cli(petpal_class: object):
         if len(arg_and_type)==2:
             arg_name = f'--{arg_and_type[0]}'.replace('_','-')
             arg_type, nargs, arg_default = type_identifier(arg_type_name=arg_and_type[1])
-            print(arg_type)
+            required = True
+            if arg_default is not None:
+                required = False
+            print(nargs)
             if nargs==1:
-                parser.add_argument(arg_name,type=arg_type,required=True,default=arg_default)
+                parser.add_argument(arg_name,type=arg_type,required=required,default=arg_default)
             else:
-                parser.add_argument(arg_name,type=arg_type,required=True,nargs=nargs,default=arg_default)
+                parser.add_argument(arg_name,type=arg_type,required=required,nargs=nargs,default=arg_default)
         elif arg_and_type[0].startswith('**'):
             kwarg_name = arg_and_type[0].replace('**','--').replace('_','-')
             parser.add_argument(kwarg_name, nargs='*', action=ParseKwargs, required=False)

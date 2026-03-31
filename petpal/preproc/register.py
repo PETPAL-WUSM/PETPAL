@@ -345,15 +345,13 @@ class RegisterBase:
         self.half_life = get_half_life_from_nifti(image_path=input_image_path)
         self.scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
 
-    def set_target_img(self, input_image_path: str, motion_target_option: str | tuple):
+    def set_target_img(self, motion_target_path: str):
         """Get the motion target, load it as an image, and set as an attribute.
         
         Args:
             input_image_path (str): Path to dynamic PET image.
             motion_target_option (str | tuple): Option for motion target. See
                 :meth:`~petpal.preproc.motion_target.determine_motion_target.` for details."""
-        motion_target_path = determine_motion_target(motion_target_option=motion_target_option,
-                                                     input_image_path=input_image_path)
         self.target_img = self.image_loader.load(filename=motion_target_path)
 
 

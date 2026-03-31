@@ -1,10 +1,16 @@
 """Module with function to get a motion target for motion correction and registration"""
+from typing import Optional
 import os
 import tempfile
 import ants
 
+from ..meta.auto_cli import auto_cli
+from ..utils.scan_timing import ScanTimingInfo
+from ..utils.image_io import get_half_life_from_nifti, safe_copy_meta
+from ..io.image import ImageLoader
 from ..utils.useful_functions import get_average_of_timeseries
 from .standard_uptake_value import weighted_sum_for_suv
+from ..utils.dimension import get_frame_from_timeseries
 
 
 def determine_motion_target(motion_target_option: str | tuple | list,
@@ -88,3 +94,69 @@ def determine_motion_target(motion_target_option: str | tuple | list,
         return out_image_file
 
     raise ValueError('motion_target_option did not match str or tuple type.')
+
+class MotionTarget:
+    """Create a static target representing a dynamic PET image, to be used for optimizing
+    co-registration."""
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        self.image_loader = image_loader or ImageLoader()
+        self.input_img = None
+        self.target_img = None
+        self.scan_timing = None
+        self.half_life = None
+        self.operations = ['mean', 'frame', 'sum']
+
+    def set_input_scan_properties(self, input_image_path: str):
+        """Load input image and get half life and scan timing. Set as MotionCorrect attributes.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image."""
+        self.input_img = self.image_loader.load(filename=input_image_path)
+        self.half_life = get_half_life_from_nifti(image_path=input_image_path)
+        self.scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
+
+    def mean_target(self, input_image_path: str):
+        self.set_input_scan_properties(input_image_path=input_image_path)
+        self.target_img = get_average_of_timeseries(input_image=self.input_img)
+
+    def frame_target(self, input_image_path: str, frame: int):
+        self.set_input_scan_properties(input_image_path=input_image_path)
+        self.target_img = get_frame_from_timeseries(input_img=self.input_img, frame=frame)
+
+    def sum_target(self, input_image_path: str, start_time: float=0, end_time: float=-1):
+        self.set_input_scan_properties(input_image_path=input_image_path)
+        self.target_img = weighted_sum_for_suv(input_image_path=input_image_path,
+                                               output_image_path=None,
+                                               start_time=start_time,
+                                               end_time=end_time)
+
+    def __call__(self,
+                 input_image_path: str,
+                 out_image_path: str,
+                 operation: str = 'sum',
+                 frame: int=70,
+                 start_time: float=0,
+                 end_time: float=-1):
+        """Create a static target representing a dynamic PET image, to be used for optimizing
+        co-registration."""
+        match operation:
+            case 'mean':
+                self.mean_target(input_image_path=input_image_path)
+            case 'frame':
+                self.frame_target(input_image_path=input_image_path, frame=frame)
+            case 'sum':
+                self.sum_target(input_image_path=input_image_path,
+                                start_time=start_time,
+                                end_time=end_time)
+            case _:
+                raise ValueError(f"Operation must be one of accepted values {self.operations}. "
+                                 f"Got {operation}.")
+
+        ants.image_write(self.target_img, out_image_path)
+
+def main():
+    auto_cli(petpal_class=MotionTarget)
+
+if __name__=='__main__':
+    main()

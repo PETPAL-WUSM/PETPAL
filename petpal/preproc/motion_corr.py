@@ -171,7 +171,7 @@ class MotionCorrect(RegisterBase):
     def __call__(self,
                  input_image_path: str,
                  output_image_path: str,
-                 motion_target_option: str,
+                 motion_target_path: str,
                  window_duration: float = 300,
                  transform_type: str = 'DenseRigid',
                  **reg_kwargs) -> ants.ANTsImage:
@@ -183,8 +183,8 @@ class MotionCorrect(RegisterBase):
         Args:
             input_image_path (str): Path to dynamic PET image.
             output_image_path (str): Path to which motion corrected image is saved.
-            motion_target_option (str | tuple): Path to motion target image, or specify time window
-                such as (0,600) or preset option such as 'weighted_series_sum'. See
+            motion_target_path (str): Path to motion target image, a static target representing the
+                dynamic PET image. See
                 :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
             transform_type (str):  Type of transform used in ants.registration. See
                 https://antspyx.readthedocs.io/en/latest/registration.html. Default DenseRigid.
