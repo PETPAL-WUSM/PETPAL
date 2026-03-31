@@ -2,7 +2,7 @@
 Provides tools to register PET images to anatomical or atlas space. Wrapper for
 ANTs and FSL registration software.
 """
-from typing import Union
+from typing import Union, Optional
 
 import ants
 import fsl.wrappers
@@ -10,6 +10,9 @@ import nibabel
 import numpy as np
 from nibabel.processing import resample_from_to
 
+from ..utils.scan_timing import ScanTimingInfo
+from ..utils.image_io import get_half_life_from_nifti, safe_copy_meta
+from ..io.image import ImageLoader
 from .motion_target import determine_motion_target
 from ..utils import image_io
 from ..utils.dimension import check_physical_space_for_ants_image_pair
@@ -306,3 +309,64 @@ def resample_nii_4dfp(input_image_path: str,
     )
     nibabel.save(input_on_mpr, out_image_path)
     image_io.safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
+
+class RegisterBase:
+    """Base class for registration API"""
+
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        self.image_loader = image_loader or ImageLoader()
+        self.input_img = None
+        self.target_img = None
+        self.scan_timing = None
+        self.half_life = None
+        self.reg_kwargs = self.default_reg_kwargs
+    
+    
+    @property
+    def default_reg_kwargs(self) -> dict:
+        """Default registration arguments passed on to :py:func:`~ants.registration`."""
+        reg_kwargs_default = {'aff_metric'               : 'mattes',
+                              'write_composite_transform': True,
+                              'interpolator'             : 'linear',
+                              'type_of_transform'        : 'DenseRigid'}
+        return reg_kwargs_default
+
+    def set_reg_kwargs(self, **reg_kwargs):
+        """Modify the registration arguments passed on to :py:func:`~ants.registration`."""
+        self.reg_kwargs.update(**reg_kwargs)
+
+    def set_input_scan_properties(self, input_image_path: str):
+        """Load input image and get half life and scan timing. Set as MotionCorrect attributes.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image."""
+        self.input_img = self.image_loader.load(filename=input_image_path)
+        self.half_life = get_half_life_from_nifti(image_path=input_image_path)
+        self.scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
+
+    def set_target_img(self, input_image_path: str, motion_target_option: str | tuple):
+        """Get the motion target, load it as an image, and set as an attribute.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            motion_target_option (str | tuple): Option for motion target. See
+                :meth:`~petpal.preproc.motion_target.determine_motion_target.` for details."""
+        motion_target_path = determine_motion_target(motion_target_option=motion_target_option,
+                                                     input_image_path=input_image_path)
+        self.target_img = self.image_loader.load(filename=motion_target_path)
+
+
+class RegisterPet(RegisterBase):
+    """API for registration of dynamic PET image to a static template.
+    
+    :ivar image_loader: :func:`~petpal.io.image.ImageLoader` instance or injectable replacement
+    :ivar table_saver: :func:`~petpal.io.table.TableSaver` instance or injectable replacement
+    :ivar input_img: (ants.ANTsImage) Dynamic PET image
+    :ivar target_img: (ants.ANTsImage) Static target image
+    :ivar scan_timing: :func:`~petpal.utils.scan_timing.ScanTimingInfo` Dynamic PET scan timing.
+    :ivar half_life: (float) Half life of the PET tracer in seconds.
+    :ivar: reg_kwargs: (dict) Keyword arguments passed on to :py:func:`~ants.registration`"""
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        super.__init__(image_loader)

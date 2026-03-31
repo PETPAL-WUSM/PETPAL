@@ -102,6 +102,26 @@ class PetpalLogging:
         self.logger.info(' '.join(self.cli_args))
 
 
+def type_identifier(arg_type_name: str) -> tuple:
+    """Identify the locator, number of arguments, and default value for the argument type."""
+    arg_default = None
+    arg_split_default = arg_type_name.split(' = ')
+    if len(arg_split_default)>1:
+        arg_default = arg_split_default[1]
+
+    arg_type = locate(arg_split_default[0])
+    nargs = 1
+    arg_split_union = arg_split_default[0].split(' | ')
+    if len(arg_split_union)>1:
+        arg_type = float
+        if 'tuple' in arg_split_union:
+            nargs = 2
+        elif 'list' in arg_split_union:
+            nargs = '+'
+    
+    return arg_type, nargs, arg_default
+
+
 def auto_cli(petpal_class: object):
     """Generate a command line interface for a PETPAL function
     
@@ -169,10 +189,15 @@ def auto_cli(petpal_class: object):
         if arg_name=='self':
             continue
         arg_and_type = arg_name.split(': ')
+        print(arg_and_type)
         if len(arg_and_type)==2:
             arg_name = f'--{arg_and_type[0]}'.replace('_','-')
-            arg_type = locate(arg_and_type[1])
-            parser.add_argument(arg_name,type=arg_type,required=True)
+            arg_type, nargs, arg_default = type_identifier(arg_type_name=arg_and_type[1])
+            print(arg_type)
+            if nargs==1:
+                parser.add_argument(arg_name,type=arg_type,required=True,default=arg_default)
+            else:
+                parser.add_argument(arg_name,type=arg_type,required=True,nargs=nargs,default=arg_default)
         elif arg_and_type[0].startswith('**'):
             kwarg_name = arg_and_type[0].replace('**','--').replace('_','-')
             parser.add_argument(kwarg_name, nargs='*', action=ParseKwargs, required=False)
@@ -180,6 +205,7 @@ def auto_cli(petpal_class: object):
 
     args = parser.parse_args()
     arg_vals = args_kwargs_to_dictionary(args=args)
+    print(arg_vals)
 
     logger = PetpalLogging(logfile=arg_vals['logfile'])
     arg_vals.pop('logfile')
