@@ -196,8 +196,7 @@ class MotionCorrect(RegisterBase):
             moco_img (ants.ANTsImage): Motion corrected dynamic PET image.
         """
         self.set_input_scan_properties(input_image_path=input_image_path)
-        self.set_target_img(input_image_path=input_image_path,
-                            motion_target_option=motion_target_option)
+        self.set_target_img(motion_target_path=motion_target_path)
 
         self.set_reg_kwargs(type_of_transform=transform_type, **reg_kwargs)
 
