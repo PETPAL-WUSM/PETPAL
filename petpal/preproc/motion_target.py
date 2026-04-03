@@ -139,7 +139,24 @@ class MotionTarget:
                  start_time: float=0,
                  end_time: float=-1):
         """Create a static target representing a dynamic PET image, to be used for optimizing
-        co-registration."""
+        co-registration.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            out_image_path (str): Path to where static target is saved. JSON is copied to same
+                directory.
+            operation (str): Setting to use for retrieving the static target. Options include
+                'mean', 'frame', and 'sum'. 'mean' calculates the mean over the dynamic image
+                without weighting frames, 'frame' extracts a single, specified frame (indexing from
+                zero), and 'sum' calculates the weighted sum over a specified time window. Default
+                'sum'.
+            frame (int): Frame to extract if operation is 'frame'. Indexes from zero, meaning use 0
+                for the first frame. Default '70'.
+            start_time (float): Beginning of window to sum over if operation is 'sum'. Measured in
+                seconds from scan start. Default 0.
+            end_time (float): End of window to sum over if operation is 'sum'. Measured in
+                seconds from scan start. Default -1 (refers to end of scan).
+            """
         match operation:
             case 'mean':
                 self.mean_target(input_image_path=input_image_path)
