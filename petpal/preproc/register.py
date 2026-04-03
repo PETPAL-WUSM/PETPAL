@@ -3,6 +3,7 @@ Provides tools to register PET images to anatomical or atlas space. Wrapper for
 ANTs and FSL registration software.
 """
 from typing import Union, Optional
+from shutil import copy
 
 import ants
 import fsl.wrappers
@@ -328,8 +329,7 @@ class RegisterBase:
         """Default registration arguments passed on to :py:func:`~ants.registration`."""
         reg_kwargs_default = {'aff_metric'               : 'mattes',
                               'write_composite_transform': True,
-                              'interpolator'             : 'linear',
-                              'type_of_transform'        : 'DenseRigid'}
+                              'interpolator'             : 'linear'}
         return reg_kwargs_default
 
     def set_reg_kwargs(self, **reg_kwargs):
@@ -368,3 +368,46 @@ class RegisterPet(RegisterBase):
     def __init__(self,
                  image_loader: Optional[ImageLoader] = None):
         super.__init__(image_loader)
+        self.reference_img = None
+
+    def set_reference_img(self, reference_image_path: str):
+        self.reference_img = self.image_loader.load(reference_image_path)
+
+    def register_target(self, transform_type: str='DenseRigid'):
+        """Calculate tranform from static target image to reference."""
+        xfm_output = ants.registration(moving=self.target_img,
+                                       fixed=self.reference_img,
+                                       type_of_transform=transform_type,
+                                       write_composite_transform=True,
+                                       **self.reg_kwargs)
+        return xfm_output['fwdtransforms']
+    
+    def apply_transform(self, xfm_path: str):
+        """Apply the calculated transform to the dynamic PET image."""
+        pet_registered = ants.apply_transforms(moving=pet_image_ants,
+                                               fixed=mri_image,
+                                               transformlist=xfm_output['fwdtransforms'],
+                                               imagetype=dim,
+                                               interpolator=self.reg_kwargs['interpolator'])
+        return pet_registered
+
+    def __call__(self,
+                 input_image_path: str,
+                 out_image_path: str,
+                 motion_target_path: str,
+                 reference_image_path: str,
+                 transform_type: str = 'DenseRigid',
+                 out_xfm_path: str = None,
+                 **reg_kwargs):
+        """Register dynamic PET to reference"""
+        self.set_input_scan_properties(input_image_path=input_image_path)
+        self.set_target_img(motion_target_path=motion_target_path)
+        self.set_reference_img(reference_image_path=reference_image_path)
+
+        xfm_path = self.register_target(transform_type=transform_type)
+        pet_registered = self.apply_transform(xfm_path=xfm_path)
+        if out_xfm_path is not None:
+            copy(xfm_path, out_xfm_path)
+        
+        ants.image_write(pet_registered, out_image_path)
+        safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
