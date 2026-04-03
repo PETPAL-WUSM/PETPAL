@@ -17,6 +17,7 @@ from ..io.image import ImageLoader
 from .motion_target import determine_motion_target
 from ..utils import image_io
 from ..utils.dimension import check_physical_space_for_ants_image_pair
+from ..meta.auto_cli import auto_cli
 
 
 def register_pet_to_pet(input_image_path: str,
@@ -411,3 +412,9 @@ class RegisterPet(RegisterBase):
         
         ants.image_write(pet_registered, out_image_path)
         safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
+
+def main():
+    auto_cli(petpal_class=RegisterPet)
+
+if __name__=='__main__':
+    main()
