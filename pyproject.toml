@@ -61,6 +61,7 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-decay-correct = "petpal.preproc.decay_correction:main"
     petpal-moco = "petpal.preproc.motion_corr:main"
     petpal-target = "petpal.preproc.motion_target:main"
+    petpal-register = "petpal.preproc.register:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"
