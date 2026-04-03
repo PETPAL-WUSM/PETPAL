@@ -179,7 +179,7 @@ def auto_cli(petpal_class: object):
             if __name__=='__main__':
                 main()
     """
-    parser = argparse.ArgumentParser(prog=petpal_class.__name__,
+    parser = argparse.ArgumentParser(prog=camel_to_kebab_case(petpal_class.__name__),
                                      description=petpal_class.__call__.__doc__,
                                      formatter_class=argparse.RawTextHelpFormatter)
 
@@ -190,14 +190,12 @@ def auto_cli(petpal_class: object):
         if arg_name=='self':
             continue
         arg_and_type = arg_name.split(': ')
-        print(arg_and_type)
         if len(arg_and_type)==2:
             arg_name = f'--{arg_and_type[0]}'.replace('_','-')
             arg_type, nargs, arg_default = type_identifier(arg_type_name=arg_and_type[1])
             required = True
             if arg_default is not None:
                 required = False
-            print(nargs)
             if nargs==1:
                 parser.add_argument(arg_name,type=arg_type,required=required,default=arg_default)
             else:
@@ -209,7 +207,6 @@ def auto_cli(petpal_class: object):
 
     args = parser.parse_args()
     arg_vals = args_kwargs_to_dictionary(args=args)
-    print(arg_vals)
 
     logger = PetpalLogging(logfile=arg_vals['logfile'])
     arg_vals.pop('logfile')
