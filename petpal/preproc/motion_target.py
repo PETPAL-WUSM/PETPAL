@@ -137,14 +137,13 @@ class MotionTarget:
                  operation: str = 'sum',
                  frame: int=70,
                  start_time: float=0,
-                 end_time: float=-1):
+                 end_time: float=-1) -> ants.ANTsImage:
         """Create a static target representing a dynamic PET image, to be used for optimizing
         co-registration.
         
         Args:
             input_image_path (str): Path to dynamic PET image.
-            out_image_path (str): Path to where static target is saved. JSON is copied to same
-                directory.
+            out_image_path (str): Path to where static target is saved.
             operation (str): Setting to use for retrieving the static target. Options include
                 'mean', 'frame', and 'sum'. 'mean' calculates the mean over the dynamic image
                 without weighting frames, 'frame' extracts a single, specified frame (indexing from
@@ -156,7 +155,10 @@ class MotionTarget:
                 seconds from scan start. Default 0.
             end_time (float): End of window to sum over if operation is 'sum'. Measured in
                 seconds from scan start. Default -1 (refers to end of scan).
-            """
+
+        Returns:
+            target_img (ants.ANTsImage): The target image.
+        """
         match operation:
             case 'mean':
                 self.mean_target(input_image_path=input_image_path)
@@ -171,6 +173,7 @@ class MotionTarget:
                                  f"Got {operation}.")
 
         ants.image_write(self.target_img, out_image_path)
+        return self.target_img
 
 def main():
     auto_cli(petpal_class=MotionTarget)
