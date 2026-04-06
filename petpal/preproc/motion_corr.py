@@ -87,7 +87,9 @@ class MotionCorrect(RegisterBase):
         xfm_out = list(rot_pars)+list(translate_matrix)+list(ants_xfm.fixed_parameters)
         return xfm_out
 
-    def register_windows(self, window_duration: float=300) -> list[ants.ANTsTransform]:
+    def register_windows(self,
+                         window_duration: float=300,
+                         transform_type: str='DenseRigid') -> list[ants.ANTsTransform]:
         """Run motion correction on the input image to the target image.
 
         Creates "windows" by summing over frames with total length equal to `window_duration` and
@@ -108,6 +110,7 @@ class MotionCorrect(RegisterBase):
                                                        end_index=end_index)
             window_registration = ants.registration(fixed=self.target_img,
                                                     moving=window_target_img,
+                                                    type_of_transform=transform_type,
                                                     **self.reg_kwargs)
             window_xfm = ants.read_transform(window_registration['fwdtransforms'])
             for _ in range(start_index, end_index):
@@ -198,9 +201,10 @@ class MotionCorrect(RegisterBase):
         self.set_input_scan_properties(input_image_path=input_image_path)
         self.set_target_img(motion_target_path=motion_target_path)
 
-        self.set_reg_kwargs(type_of_transform=transform_type, **reg_kwargs)
+        self.set_reg_kwargs(**reg_kwargs)
 
-        frame_xfms = self.register_windows(window_duration=window_duration)
+        frame_xfms = self.register_windows(window_duration=window_duration,
+                                           transform_type=transform_type)
         moco_img = self.apply_motion_correction(frame_xfms=frame_xfms)
 
 
