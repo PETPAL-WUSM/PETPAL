@@ -234,7 +234,6 @@ class MotionCorrect(RegisterBase):
                                            transform_type=transform_type)
         moco_img = self.apply_motion_correction(frame_xfms=frame_xfms)
 
-
         if transform_type in self.rigid_xfms:
             self.save_xfm_parameters(frame_xfms=frame_xfms,
                                      filename=out_image_path,
