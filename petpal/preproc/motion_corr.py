@@ -9,6 +9,7 @@ from warnings import warn
 import ants
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from scipy.spatial.transform import Rotation
 
 from .motion_target import determine_motion_target
@@ -139,6 +140,17 @@ class MotionCorrect(RegisterBase):
         moco_img = timeseries_from_img_list(moco_img_stack)
         return moco_img
 
+    def plot_motion(self,
+                    frame_xfm_pars: pd.DataFrame,
+                    out_plot_path: str):
+        xfm_pars = frame_xfm_pars.drop(columns=['cen_x','cen_y','cen_z'])
+        xfm_pars['times (min)'] = self.scan_timing.center_in_mins
+        tidy_xfm_pars = xfm_pars.melt('times (min)', var_name='axis', value_name='mm/deg')
+        plot = sns.lineplot(data=tidy_xfm_pars, x='times (min)', y='mm/deg', hue='axis')
+        sns.move_legend(plot, 'upper left', bbox_to_anchor=(1, 1))
+        fig = plot.get_figure()
+        fig.savefig(out_plot_path, bbox_inches = "tight")
+
     def save_xfm_parameters(self,
                             frame_xfms: list[ants.ANTsTransform],
                             filename: str,
@@ -173,6 +185,10 @@ class MotionCorrect(RegisterBase):
         xfms_df.index.name = 'frame'
         csv_filename = coerce_outpath_extension(path=filename, ext='.csv')
         self.table_saver.save(xfms_df,csv_filename)
+
+        plot_filename = coerce_outpath_extension(path=filename, ext='.png')
+        self.plot_motion(frame_xfm_pars = xfms_df,
+                         out_plot_path = plot_filename)
 
     def __call__(self,
                  input_image_path: str,
