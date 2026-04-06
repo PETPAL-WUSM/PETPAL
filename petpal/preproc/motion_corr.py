@@ -139,7 +139,10 @@ class MotionCorrect(RegisterBase):
         moco_img = timeseries_from_img_list(moco_img_stack)
         return moco_img
 
-    def save_xfm_parameters(self, frame_xfms: list[ants.ANTsTransform], filename: str):
+    def save_xfm_parameters(self,
+                            frame_xfms: list[ants.ANTsTransform],
+                            filename: str,
+                            transform_type: str):
         """Save frame transform parameters as a table.
 
         Args:
@@ -152,10 +155,10 @@ class MotionCorrect(RegisterBase):
                 currently only available for rigid transforms."""
         frame_xfm_pars = [self.ants_xfm_to_rigid_pars(ants_xfm=xfm) for xfm in frame_xfms]
 
-        if 'Rigid' not in self.reg_kwargs['type_of_transform']:
+        if transform_type not in self.rigid_xfms:
             raise ValueError("Saving transform parameters is only available for rigid "
                              "registrations. Current transform type: "
-                             f"{self.reg_kwargs['type_of_transform']}")
+                             f"{transform_type}")
         xfm_columns = ['rot_x',
                        'rot_y',
                        'rot_z',
@@ -173,7 +176,7 @@ class MotionCorrect(RegisterBase):
 
     def __call__(self,
                  input_image_path: str,
-                 output_image_path: str,
+                 out_image_path: str,
                  motion_target_path: str,
                  window_duration: float = 300,
                  transform_type: str = 'DenseRigid',
@@ -185,7 +188,7 @@ class MotionCorrect(RegisterBase):
 
         Args:
             input_image_path (str): Path to dynamic PET image.
-            output_image_path (str): Path to which motion corrected image is saved.
+            out_image_path (str): Path to which motion corrected image is saved.
             motion_target_path (str): Path to motion target image, a static target representing the
                 dynamic PET image. See
                 :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
@@ -202,20 +205,22 @@ class MotionCorrect(RegisterBase):
         self.set_target_img(motion_target_path=motion_target_path)
 
         self.set_reg_kwargs(**reg_kwargs)
-
+        self.set_reg_kwargs(write_composite_transform=True)
         frame_xfms = self.register_windows(window_duration=window_duration,
                                            transform_type=transform_type)
         moco_img = self.apply_motion_correction(frame_xfms=frame_xfms)
 
 
-        if 'Rigid' in self.reg_kwargs['type_of_transform']:
-            self.save_xfm_parameters(frame_xfms=frame_xfms, filename=output_image_path)
+        if transform_type in self.rigid_xfms:
+            self.save_xfm_parameters(frame_xfms=frame_xfms,
+                                     filename=out_image_path,
+                                     transform_type=transform_type)
         else:
             warn("Saving transform parameters is only available for rigid registrations. Current "
-                 f" transform type: {self.reg_kwargs['type_of_transform']}.")
+                 f" transform type: {transform_type}.")
 
-        ants.image_write(image=moco_img, filename=output_image_path)
-        safe_copy_meta(input_image_path=input_image_path, out_image_path=output_image_path)
+        ants.image_write(image=moco_img, filename=out_image_path)
+        safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
 
         return moco_img
 
