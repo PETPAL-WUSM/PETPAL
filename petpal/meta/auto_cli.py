@@ -102,6 +102,27 @@ class PetpalLogging:
         self.logger.info(' '.join(self.cli_args))
 
 
+def type_identifier(arg_type_name: str) -> tuple:
+    """Identify the locator, number of arguments, and default value for the argument type."""
+    arg_default = None
+    arg_split_default = arg_type_name.split(' = ')
+    if len(arg_split_default)>1:
+        arg_default = arg_split_default[1]
+
+    arg_type = locate(arg_split_default[0])
+    nargs = 1
+    arg_split_union = arg_split_default[0].split(' | ')
+    ntypes = len(arg_split_union)
+    for atype in arg_split_union:
+        if 'list' in atype or 'tuple' in atype:
+            nargs = '+'
+
+    if arg_type==str and arg_default is not None:
+        arg_default = arg_default.replace("'","")
+
+    return arg_type, nargs, arg_default
+
+
 def auto_cli(petpal_class: object):
     """Generate a command line interface for a PETPAL function
     
@@ -158,7 +179,7 @@ def auto_cli(petpal_class: object):
             if __name__=='__main__':
                 main()
     """
-    parser = argparse.ArgumentParser(prog=petpal_class.__name__,
+    parser = argparse.ArgumentParser(prog=camel_to_kebab_case(petpal_class.__name__),
                                      description=petpal_class.__call__.__doc__,
                                      formatter_class=argparse.RawTextHelpFormatter)
 
@@ -171,8 +192,14 @@ def auto_cli(petpal_class: object):
         arg_and_type = arg_name.split(': ')
         if len(arg_and_type)==2:
             arg_name = f'--{arg_and_type[0]}'.replace('_','-')
-            arg_type = locate(arg_and_type[1])
-            parser.add_argument(arg_name,type=arg_type,required=True)
+            arg_type, nargs, arg_default = type_identifier(arg_type_name=arg_and_type[1])
+            required = True
+            if arg_default is not None:
+                required = False
+            if nargs==1:
+                parser.add_argument(arg_name,type=arg_type,required=required,default=arg_default)
+            else:
+                parser.add_argument(arg_name,type=arg_type,required=required,nargs=nargs,default=arg_default)
         elif arg_and_type[0].startswith('**'):
             kwarg_name = arg_and_type[0].replace('**','--').replace('_','-')
             parser.add_argument(kwarg_name, nargs='*', action=ParseKwargs, required=False)

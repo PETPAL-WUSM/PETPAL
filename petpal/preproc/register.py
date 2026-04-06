@@ -2,7 +2,9 @@
 Provides tools to register PET images to anatomical or atlas space. Wrapper for
 ANTs and FSL registration software.
 """
-from typing import Union
+from typing import Union, Optional
+from shutil import copy
+import os
 
 import ants
 import fsl.wrappers
@@ -10,9 +12,14 @@ import nibabel
 import numpy as np
 from nibabel.processing import resample_from_to
 
+from ..utils.scan_timing import ScanTimingInfo
+from ..utils.image_io import get_half_life_from_nifti, safe_copy_meta
+from ..io.image import ImageLoader
 from .motion_target import determine_motion_target
 from ..utils import image_io
+from ..utils.useful_functions import coerce_outpath_extension
 from ..utils.dimension import check_physical_space_for_ants_image_pair
+from ..meta.auto_cli import auto_cli
 
 
 def register_pet_to_pet(input_image_path: str,
@@ -306,3 +313,142 @@ def resample_nii_4dfp(input_image_path: str,
     )
     nibabel.save(input_on_mpr, out_image_path)
     image_io.safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
+
+class RegisterBase:
+    """Base class for registration API"""
+
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        self.image_loader = image_loader or ImageLoader()
+        self.input_img = None
+        self.target_img = None
+        self.scan_timing = None
+        self.half_life = None
+        self.reg_kwargs = self.default_reg_kwargs
+        self.rigid_xfms = ['DenseRigid',
+                           'Translation',
+                           'Rigid',
+                           'QuickRigid',
+                           'BOLDRigid',
+                           'antsRegistrationSyN[r]',
+                           'antsRegistrationSyNQuick[r]',
+                           'antsRegistrationSyNRepro[r]',
+                           'antsRegistrationSyNQuickRepro[r]',
+                           'antsRegistrationSyN[t]',
+                           'antsRegistrationSyNQuick[t]',
+                           'antsRegistrationSyNRepro[t]',
+                           'antsRegistrationSyNQuickRepro[t]']
+
+    @property
+    def default_reg_kwargs(self) -> dict:
+        """Default registration arguments passed on to :py:func:`~ants.registration`."""
+        reg_kwargs_default = {'aff_metric'               : 'mattes',
+                              'write_composite_transform': False,
+                              'interpolator'             : 'linear'}
+        return reg_kwargs_default
+
+    def set_reg_kwargs(self, **reg_kwargs):
+        """Modify the registration arguments passed on to :py:func:`~ants.registration`."""
+        self.reg_kwargs.update(**reg_kwargs)
+
+    def set_input_scan_properties(self, input_image_path: str):
+        """Load input image and get half life and scan timing. Set as MotionCorrect attributes.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image."""
+        self.input_img = self.image_loader.load(filename=input_image_path)
+        self.half_life = get_half_life_from_nifti(image_path=input_image_path)
+        self.scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
+
+    def set_target_img(self, motion_target_path: str):
+        """Get the motion target, load it as an image, and set as an attribute.
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image.
+            motion_target_option (str | tuple): Option for motion target. See
+                :meth:`~petpal.preproc.motion_target.determine_motion_target.` for details."""
+        self.target_img = self.image_loader.load(filename=motion_target_path)
+
+
+class RegisterPet(RegisterBase):
+    """API for registration of dynamic PET image to a static template.
+    
+    :ivar image_loader: :func:`~petpal.io.image.ImageLoader` instance or injectable replacement
+    :ivar table_saver: :func:`~petpal.io.table.TableSaver` instance or injectable replacement
+    :ivar input_img: (ants.ANTsImage) Dynamic PET image
+    :ivar target_img: (ants.ANTsImage) Static target image
+    :ivar scan_timing: :func:`~petpal.utils.scan_timing.ScanTimingInfo` Dynamic PET scan timing.
+    :ivar half_life: (float) Half life of the PET tracer in seconds.
+    :ivar: reg_kwargs: (dict) Keyword arguments passed on to :py:func:`~ants.registration`"""
+    def __init__(self,
+                 image_loader: Optional[ImageLoader] = None):
+        super().__init__(image_loader)
+        self.reference_img = None
+
+    def set_reference_img(self, reference_image_path: str):
+        self.reference_img = self.image_loader.load(reference_image_path)
+
+    def register_target(self, transform_type: str='DenseRigid'):
+        """Calculate tranform from static target image to reference."""
+        xfm_output = ants.registration(moving=self.target_img,
+                                       fixed=self.reference_img,
+                                       type_of_transform=transform_type,
+                                       **self.reg_kwargs)
+        return xfm_output['fwdtransforms']
+    
+    def apply_transform(self, xfm_path: str):
+        """Apply the calculated transform to the dynamic PET image."""
+        pet_registered = ants.apply_transforms(moving=self.input_img,
+                                               fixed=self.reference_img,
+                                               transformlist=xfm_path,
+                                               imagetype=3,
+                                               interpolator=self.reg_kwargs['interpolator'])
+        return pet_registered
+
+    def __call__(self,
+                 input_image_path: str,
+                 out_image_path: str,
+                 motion_target_path: str,
+                 reference_image_path: str,
+                 transform_type: str = 'DenseRigid',
+                 out_xfm_folder: str = None,
+                 **reg_kwargs):
+        """Register dynamic PET to reference
+        
+        Args:
+            input_image_path (str): Path to dynamic PET image
+            out_image_path (str): Path to dynamic PET registered to the reference
+            motion_target_path (str): Path to motion target image, the static image used for
+               calculating transform to reference space.
+            reference_image_path (str): Path to static reference image, such as bias-corrected T1.
+            transform_type (str): Type of transform to use when calculating transform. Passed on to
+                :py:func:`ants.registration` as `type_of_transform`. Suggested options are
+                'DenseRigid' for rotation and scaling and 'Affine' for 12 parameter transform.
+                Default 'DenseRigid'.
+            out_xfm_folder (str): If set, saves transform files for each stage to the specified
+                folder.
+            reg_kwargs (kwargs): Additional keyword arguments passed on to
+                :py:func:`ants.registration`."""
+        self.set_input_scan_properties(input_image_path=input_image_path)
+        self.set_target_img(motion_target_path=motion_target_path)
+        self.set_reference_img(reference_image_path=reference_image_path)
+        self.set_reg_kwargs(**reg_kwargs)
+
+        xfm_path = self.register_target(transform_type=transform_type)
+        pet_registered = self.apply_transform(xfm_path=xfm_path)
+        if out_xfm_folder is not None:
+            os.makedirs(out_xfm_folder, exist_ok=True)
+            if isinstance(xfm_path, list):
+                for xfm in xfm_path:
+                    copy(xfm, out_xfm_folder)
+            else:
+                copy(xfm, out_xfm_folder)
+        
+        ants.image_write(pet_registered, out_image_path)
+        safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
+
+def main():
+    auto_cli(petpal_class=RegisterPet)
+
+if __name__=='__main__':
+    main()

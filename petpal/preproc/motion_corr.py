@@ -9,6 +9,7 @@ from warnings import warn
 import ants
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from scipy.spatial.transform import Rotation
 
 from .motion_target import determine_motion_target
@@ -20,9 +21,10 @@ from ..utils.dimension import timeseries_from_img_list
 from ..utils.image_io import get_half_life_from_nifti, safe_copy_meta
 from ..io.table import TableSaver
 from ..io.image import ImageLoader
+from ..meta.auto_cli import auto_cli
+from .register import RegisterBase
 
-
-class MotionCorrect:
+class MotionCorrect(RegisterBase):
     """Run windowed motion correction on an image and save the result.
     
     :ivar image_loader: :func:`~petpal.io.image.ImageLoader` instance or injectable replacement
@@ -35,46 +37,8 @@ class MotionCorrect:
     def __init__(self,
                  image_loader: Optional[ImageLoader] = None,
                  table_saver: Optional[TableSaver] = None):
-        self.image_loader = image_loader or ImageLoader()
+        super().__init__(image_loader)
         self.table_saver = table_saver or TableSaver()
-        self.input_img = None
-        self.target_img = None
-        self.scan_timing = None
-        self.half_life = None
-        self.reg_kwargs = self.default_reg_kwargs
-
-    @property
-    def default_reg_kwargs(self) -> dict:
-        """Default registration arguments passed on to :py:func:`~ants.registration`."""
-        reg_kwargs_default = {'aff_metric'               : 'mattes',
-                              'write_composite_transform': True,
-                              'interpolator'             : 'linear',
-                              'type_of_transform'        : 'DenseRigid'}
-        return reg_kwargs_default
-
-    def set_reg_kwargs(self, **reg_kwargs):
-        """Modify the registration arguments passed on to :py:func:`~ants.registration`."""
-        self.reg_kwargs.update(**reg_kwargs)
-
-    def set_input_scan_properties(self, input_image_path: str):
-        """Load input image and get half life and scan timing. Set as MotionCorrect attributes.
-        
-        Args:
-            input_image_path (str): Path to dynamic PET image."""
-        self.input_img = self.image_loader.load(filename=input_image_path)
-        self.half_life = get_half_life_from_nifti(image_path=input_image_path)
-        self.scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
-
-    def set_target_img(self, input_image_path: str, motion_target_option: str | tuple):
-        """Get the motion target, load it as an image, and set as an attribute.
-        
-        Args:
-            input_image_path (str): Path to dynamic PET image.
-            motion_target_option (str | tuple): Option for motion target. See
-                :meth:`~petpal.preproc.motion_target.determine_motion_target.` for details."""
-        motion_target_path = determine_motion_target(motion_target_option=motion_target_option,
-                                                     input_image_path=input_image_path)
-        self.target_img = self.image_loader.load(filename=motion_target_path)
 
     def window_index_pairs(self, window_duration: float=300) -> np.ndarray:
         """The pair of indices corresponding to each window in the image.
@@ -124,7 +88,9 @@ class MotionCorrect:
         xfm_out = list(rot_pars)+list(translate_matrix)+list(ants_xfm.fixed_parameters)
         return xfm_out
 
-    def register_windows(self, window_duration: float=300) -> list[ants.ANTsTransform]:
+    def register_windows(self,
+                         window_duration: float=300,
+                         transform_type: str='DenseRigid') -> list[ants.ANTsTransform]:
         """Run motion correction on the input image to the target image.
 
         Creates "windows" by summing over frames with total length equal to `window_duration` and
@@ -145,6 +111,7 @@ class MotionCorrect:
                                                        end_index=end_index)
             window_registration = ants.registration(fixed=self.target_img,
                                                     moving=window_target_img,
+                                                    type_of_transform=transform_type,
                                                     **self.reg_kwargs)
             window_xfm = ants.read_transform(window_registration['fwdtransforms'])
             for _ in range(start_index, end_index):
@@ -173,7 +140,29 @@ class MotionCorrect:
         moco_img = timeseries_from_img_list(moco_img_stack)
         return moco_img
 
-    def save_xfm_parameters(self, frame_xfms: list[ants.ANTsTransform], filename: str):
+    def plot_motion(self,
+                    frame_xfm_pars: pd.DataFrame,
+                    out_plot_path: str):
+        """
+        Plot the six motion parameters in rigid transformations over time ('motionogram').
+
+        Args:
+            frame_xfm_pars (pd.DataFrame): The six motion parameters for each frame, as well as the
+                center coordinates.
+            out_plot_path (str): Path to where motion plot is saved, typically a .png file.
+        """
+        xfm_pars = frame_xfm_pars.drop(columns=['cen_x','cen_y','cen_z'])
+        xfm_pars['times (min)'] = self.scan_timing.center_in_mins
+        tidy_xfm_pars = xfm_pars.melt('times (min)', var_name='axis', value_name='mm/deg')
+        plot = sns.lineplot(data=tidy_xfm_pars, x='times (min)', y='mm/deg', hue='axis')
+        sns.move_legend(plot, 'upper left', bbox_to_anchor=(1, 1))
+        fig = plot.get_figure()
+        fig.savefig(out_plot_path, bbox_inches = "tight")
+
+    def save_xfm_parameters(self,
+                            frame_xfms: list[ants.ANTsTransform],
+                            filename: str,
+                            transform_type: str):
         """Save frame transform parameters as a table.
 
         Args:
@@ -186,10 +175,10 @@ class MotionCorrect:
                 currently only available for rigid transforms."""
         frame_xfm_pars = [self.ants_xfm_to_rigid_pars(ants_xfm=xfm) for xfm in frame_xfms]
 
-        if 'Rigid' not in self.reg_kwargs['type_of_transform']:
+        if transform_type not in self.rigid_xfms:
             raise ValueError("Saving transform parameters is only available for rigid "
                              "registrations. Current transform type: "
-                             f"{self.reg_kwargs['type_of_transform']}")
+                             f"{transform_type}")
         xfm_columns = ['rot_x',
                        'rot_y',
                        'rot_z',
@@ -205,10 +194,14 @@ class MotionCorrect:
         csv_filename = coerce_outpath_extension(path=filename, ext='.csv')
         self.table_saver.save(xfms_df,csv_filename)
 
+        plot_filename = coerce_outpath_extension(path=filename, ext='.png')
+        self.plot_motion(frame_xfm_pars = xfms_df,
+                         out_plot_path = plot_filename)
+
     def __call__(self,
                  input_image_path: str,
-                 output_image_path: str,
-                 motion_target_option: str | tuple,
+                 out_image_path: str,
+                 motion_target_path: str,
                  window_duration: float = 300,
                  transform_type: str = 'DenseRigid',
                  **reg_kwargs) -> ants.ANTsImage:
@@ -219,9 +212,9 @@ class MotionCorrect:
 
         Args:
             input_image_path (str): Path to dynamic PET image.
-            output_image_path (str): Path to which motion corrected image is saved.
-            motion_target_option (str | tuple): Path to motion target image, or specify time window
-                such as (0,600) or preset option such as 'weighted_series_sum'. See
+            out_image_path (str): Path to which motion corrected image is saved.
+            motion_target_path (str): Path to motion target image, a static target representing the
+                dynamic PET image. See
                 :py:func:`~petpal.preproc.motion_target.determine_motion_target`.
             transform_type (str):  Type of transform used in ants.registration. See
                 https://antspyx.readthedocs.io/en/latest/registration.html. Default DenseRigid.
@@ -233,29 +226,30 @@ class MotionCorrect:
             moco_img (ants.ANTsImage): Motion corrected dynamic PET image.
         """
         self.set_input_scan_properties(input_image_path=input_image_path)
-        self.set_target_img(input_image_path=input_image_path,
-                            motion_target_option=motion_target_option)
+        self.set_target_img(motion_target_path=motion_target_path)
 
-        self.set_reg_kwargs(type_of_transform=transform_type, **reg_kwargs)
-
-        frame_xfms = self.register_windows(window_duration=window_duration)
+        self.set_reg_kwargs(**reg_kwargs)
+        self.set_reg_kwargs(write_composite_transform=True)
+        frame_xfms = self.register_windows(window_duration=window_duration,
+                                           transform_type=transform_type)
         moco_img = self.apply_motion_correction(frame_xfms=frame_xfms)
 
-
-        if 'Rigid' in self.reg_kwargs['type_of_transform']:
-            self.save_xfm_parameters(frame_xfms=frame_xfms, filename=output_image_path)
+        if transform_type in self.rigid_xfms:
+            self.save_xfm_parameters(frame_xfms=frame_xfms,
+                                     filename=out_image_path,
+                                     transform_type=transform_type)
         else:
             warn("Saving transform parameters is only available for rigid registrations. Current "
-                 f" transform type: {self.reg_kwargs['type_of_transform']}.")
+                 f" transform type: {transform_type}.")
 
-        ants.image_write(image=moco_img, filename=output_image_path)
-        safe_copy_meta(input_image_path=input_image_path, out_image_path=output_image_path)
+        ants.image_write(image=moco_img, filename=out_image_path)
+        safe_copy_meta(input_image_path=input_image_path, out_image_path=out_image_path)
 
         return moco_img
 
 def windowed_motion_corr_to_target(input_image_path: str,
                                    out_image_path: str | None,
-                                   motion_target_option: str | tuple,
+                                   motion_target_option: str,
                                    window_duration: float,
                                    type_of_transform: str = 'QuickRigid',
                                    interpolator: str = 'linear',
@@ -321,3 +315,9 @@ def windowed_motion_corr_to_target(input_image_path: str,
                                 save_xfm=False
                                 **reg_kwargs)
     return moco_img
+
+def main():
+    auto_cli(petpal_class=MotionCorrect)
+
+if __name__=='__main__':
+    main()
