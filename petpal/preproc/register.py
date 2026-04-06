@@ -420,6 +420,7 @@ class RegisterPet(RegisterBase):
         self.set_input_scan_properties(input_image_path=input_image_path)
         self.set_target_img(motion_target_path=motion_target_path)
         self.set_reference_img(reference_image_path=reference_image_path)
+        self.set_reg_kwargs(**reg_kwargs)
 
         xfm_path = self.register_target(transform_type=transform_type)
         pet_registered = self.apply_transform(xfm_path=xfm_path)
