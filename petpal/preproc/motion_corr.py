@@ -143,6 +143,14 @@ class MotionCorrect(RegisterBase):
     def plot_motion(self,
                     frame_xfm_pars: pd.DataFrame,
                     out_plot_path: str):
+        """
+        Plot the six motion parameters in rigid transformations over time ('motionogram').
+
+        Args:
+            frame_xfm_pars (pd.DataFrame): The six motion parameters for each frame, as well as the
+                center coordinates.
+            out_plot_path (str): Path to where motion plot is saved, typically a .png file.
+        """
         xfm_pars = frame_xfm_pars.drop(columns=['cen_x','cen_y','cen_z'])
         xfm_pars['times (min)'] = self.scan_timing.center_in_mins
         tidy_xfm_pars = xfm_pars.melt('times (min)', var_name='axis', value_name='mm/deg')
