@@ -325,7 +325,19 @@ class RegisterBase:
         self.scan_timing = None
         self.half_life = None
         self.reg_kwargs = self.default_reg_kwargs
-
+        self.rigid_xfms = ['DenseRigid',
+                           'Translation',
+                           'Rigid',
+                           'QuickRigid',
+                           'BOLDRigid',
+                           'antsRegistrationSyN[r]',
+                           'antsRegistrationSyNQuick[r]',
+                           'antsRegistrationSyNRepro[r]',
+                           'antsRegistrationSyNQuickRepro[r]',
+                           'antsRegistrationSyN[t]',
+                           'antsRegistrationSyNQuick[t]',
+                           'antsRegistrationSyNRepro[t]',
+                           'antsRegistrationSyNQuickRepro[t]']
 
     @property
     def default_reg_kwargs(self) -> dict:
@@ -372,19 +384,6 @@ class RegisterPet(RegisterBase):
                  image_loader: Optional[ImageLoader] = None):
         super().__init__(image_loader)
         self.reference_img = None
-        self.rigid_xfms = ['DenseRigid',
-                           'Translation',
-                           'Rigid',
-                           'QuickRigid',
-                           'BOLDRigid',
-                           'antsRegistrationSyN[r]',
-                           'antsRegistrationSyNQuick[r]',
-                           'antsRegistrationSyNRepro[r]',
-                           'antsRegistrationSyNQuickRepro[r]',
-                           'antsRegistrationSyN[t]',
-                           'antsRegistrationSyNQuick[t]',
-                           'antsRegistrationSyNRepro[t]',
-                           'antsRegistrationSyNQuickRepro[t]',]
 
     def set_reference_img(self, reference_image_path: str):
         self.reference_img = self.image_loader.load(reference_image_path)
