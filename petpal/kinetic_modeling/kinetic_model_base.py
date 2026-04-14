@@ -121,15 +121,21 @@ class RegionalTacsLoader:
         return tacs
 
 
-    def __call__(self, tacs_path: str):
-        return self.load_tacs_sheet(tacs_path=tacs_path)
+    def load(self, tacs_path: str):
+        self.load_tacs_sheet(tacs_path=tacs_path)
+        return self.tacs_dictionary()
 
 
 class ModelConfig:
     r"""
     Base class for config settings to apply to kinetic models
     """
-    def __init__(self, model_solver: Callable, required_pars: list[str], fitted_pars: list[str]):
+    def __init__(self,
+                 model_solver: Callable,
+                 required_pars: list[str],
+                 fitted_pars: list[str],
+                 tacs_loader: Optional[RegionalTacsLoader] = None,
+                 table_saver: Optional[TableSaver] = None):
         r"""
         Initialize a TCM model configuration.
         """
@@ -138,8 +144,11 @@ class ModelConfig:
         self.fitted_pars = fitted_pars
         self.num_params = len(required_pars)
         self.model_pars = None
+        self.table_saver = table_saver or TableSaver()
+        self.tacs_loader = tacs_loader or RegionalTacsLoader()
 
-    def required_parameter_setter(self, **pars):
+
+    def set_required_pars(self, **pars):
         """Set each parameter in required_pars"""
         model_pars = namedtuple('Pars',self.required_pars)
         self.model_pars = model_pars(**pars)
@@ -179,25 +188,25 @@ class ModelConfig:
 
     def fit_regions(self) -> pd.DataFrame:
         """Run the kinetic model on all of the regions"""
-        fit_results = pd.DataFrame(index=self.model_config.fitted_pars)
         tacs = self.tacs
+        fit_results = pd.DataFrame(index=tacs.keys(), columns=self.fitted_pars)
         for region,tac in tacs.items():
             try:
                 region_fit = self.run_model(reference_tac=self.reference_tac,
                                             region_tac=tac)
             except Exception:
-                region_fit = self.model_config.null_result()
-            fit_results[region] = region_fit
+                region_fit = self.null_result()
+            fit_results.loc[region,:] = region_fit
         return fit_results
 
     def __call__(self,
-                 input_tac_path,
+                 reference_region,
                  regional_tacs_path,
                  save_path,
                  **run_kwargs):
-        self.tacs = self.tacs_loader.load_tacs_sheet(tacs_path=regional_tacs_path)
-        self.reference_tac = TimeActivityCurve.from_tsv(filename=input_tac_path)
-        self.model_config.set_required_pars(**run_kwargs)
+        self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+        self.set_required_pars(**run_kwargs)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)
 
