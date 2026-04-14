@@ -8,6 +8,7 @@ import os
 import dataclasses
 import numpy as np
 import pandas as pd
+import ants
 from petpal.kinetic_modeling import graphical_analysis, reference_tissue_models
 from petpal.utils.time_activity_curve import TimeActivityCurve
 from petpal.utils.scan_timing import ScanTimingInfo
@@ -199,18 +200,6 @@ class ModelConfig:
             fit_results.loc[region,:] = region_fit
         return fit_results
 
-    def __call__(self,
-                 reference_region,
-                 regional_tacs_path,
-                 save_path,
-                 **run_kwargs):
-        self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-        self.set_required_pars(**run_kwargs)
-        fit_results = self.fit_regions()
-        self.table_saver.save(fit_results, save_path)
-
-
 
 class LoganRefConfig(ModelConfig):
     """Config settings for logan reference tissue"""
@@ -233,50 +222,59 @@ class LoganRefConfig(ModelConfig):
         fit_result = [*fits, bp]
         return fit_result
 
-
-
-class KineticModeling:
-    """Interface for running a kinetic model on TACs for each region"""
-    def __init__(self,
-                 tacs_loader: Optional[RegionalTacsLoader] = None,
-                 table_saver: Optional[TableSaver] = None,):
-        self.tacs = pd.DataFrame()
-        self.input_tac: TimeActivityCurve = None
-        self._model_factory = model_factory or reference_model_factory
-        self.table_saver = table_saver or TableSaver()
-        self.tacs_loader = tacs_loader or RegionalTacsLoader()
-        self.model_config: BaseModelConfig | None = None
-
-    def set_model(self, model_name: str):
-        """Set the model to run"""
-        self.model_config = self._model_factory(model_name)
-
-    def run_model(self,tac):
-        """Run the kinetic model"""
-        model_fit = self.model_config.run_model(input_tac=self.input_tac,
-                                                region_tac=tac)
-        return model_fit
-
-
-    def fit_regions(self) -> pd.DataFrame:
-        """Run the kinetic model on all of the regions"""
-        fit_results = pd.DataFrame(index=self.model_config.fitted_pars)
-        tacs = self.tacs
-        for region,tac in tacs.items():
-            try:
-                region_fit = self.run_model(tac=tac)
-            except Exception:
-                region_fit = self.model_config.null_result()
-            fit_results[region] = region_fit
-        return fit_results
-
     def __call__(self,
-                 input_tac_path,
+                 reference_region,
                  regional_tacs_path,
                  save_path,
-                 **run_kwargs):
-        self.tacs = self.tacs_loader.load_tacs_sheet(tacs_path=regional_tacs_path)
-        self.input_tac = TimeActivityCurve.from_tsv(filename=input_tac_path)
-        self.model_config.set_required_pars(**run_kwargs)
+                 t_star: float,
+                 k2_prime: float):
+        self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)
+
+class ParametricModel(ModelConfig):
+
+    def run_parametric_model(self, pet_arr: np.ndarray):
+        img_dims = pet_arr.shape
+
+        result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
+
+        for i in range(0, img_dims[0], 1):
+            for j in range(0, img_dims[1], 1):
+                for k in range(0, img_dims[2], 1):
+                    voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
+                                                    activity=pet_arr[i,j,k,:])
+                    result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
+                                                    region_tac=voxel_tac)
+
+        return result_arr
+
+class LoganRefParametric(LoganRefConfig):
+
+    def run_parametric_model(self, pet_arr: np.ndarray):
+        img_dims = pet_arr.shape
+
+        result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
+
+        for i in range(0, img_dims[0], 1):
+            for j in range(0, img_dims[1], 1):
+                for k in range(0, img_dims[2], 1):
+                    voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
+                                                    activity=pet_arr[i,j,k,:])
+                    result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
+                                                    region_tac=voxel_tac)
+
+        return result_arr
+
+
+    def __call__(self, input_image_path: str, out_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
+        input_img = ants.image_read(input_image_path)
+        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
+        pet_arr = input_img.numpy()
+        result_arr = self.run_parametric_model(pet_arr=pet_arr)
+        out_img = ants.from_numpy_like(result_arr, input_img)
+        ants.image_write(out_img, out_image_path)
