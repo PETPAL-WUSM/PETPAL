@@ -276,5 +276,8 @@ class LoganRefParametric(LoganRefConfig):
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         pet_arr = input_img.numpy()
         result_arr = self.run_parametric_model(pet_arr=pet_arr)
-        out_img = ants.from_numpy_like(result_arr, input_img)
+        out_img = ants.from_numpy(result_arr,
+                                  input_img.origin,
+                                  input_img.spacing,
+                                  input_img.direction)
         ants.image_write(out_img, out_image_path)
