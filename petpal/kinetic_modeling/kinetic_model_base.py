@@ -13,6 +13,7 @@ from petpal.kinetic_modeling import graphical_analysis, reference_tissue_models
 from petpal.utils.time_activity_curve import TimeActivityCurve
 from petpal.utils.scan_timing import ScanTimingInfo
 from petpal.io.table import TableSaver
+from petpal.utils.dimension import gen_3d_img_from_timeseries
 
 
 class RegionalTacsLoader:
@@ -268,7 +269,7 @@ class LoganRefParametric(LoganRefConfig):
 
         return result_arr
 
-    def __call__(self, input_image_path: str, out_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
+    def __call__(self, input_image_path: str, out_image_prefix: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
         """
         Fit all voxels in PET image with Logan reference kinetic model.
 
@@ -289,8 +290,7 @@ class LoganRefParametric(LoganRefConfig):
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         pet_arr = input_img.numpy()
         result_arr = self.run_parametric_model(pet_arr=pet_arr)
-        out_img = ants.from_numpy(result_arr,
-                                  input_img.origin,
-                                  input_img.spacing,
-                                  input_img.direction)
-        ants.image_write(out_img, out_image_path)
+        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
+        for i, par in enumerate(self.fitted_pars):
+            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
+            ants.image_write(out_img, f"{out_image_prefix}_model-LoganRef_{par}.nii.gz")
