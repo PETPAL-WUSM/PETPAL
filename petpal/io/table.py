@@ -11,6 +11,8 @@ import pandas as pd
 import numpy as np
 
 from ..utils.scan_timing import ScanTimingInfo
+from ..utils.time_activity_curve import TimeActivityCurve
+
 
 def get_tabular_separator(ext: str) -> str:
     """Get the separator corresponding to a given tabular data filetype.
