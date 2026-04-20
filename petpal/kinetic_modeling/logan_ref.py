@@ -1,8 +1,8 @@
 """Regional kinetic modeling with Logan (reference region)"""
 from petpal.kinetic_modeling import graphical_analysis
 from petpal.utils.time_activity_curve import TimeActivityCurve
-from ..kinetic_model_base import ModelConfig
-from ...meta.auto_cli import auto_cli
+from .kinetic_model_base import ModelConfig
+from ..meta.auto_cli import auto_cli
 
 class LoganRefConfig(ModelConfig):
     """Config settings for logan reference tissue"""

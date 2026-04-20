@@ -4,9 +4,9 @@ import ants
 from petpal.kinetic_modeling import graphical_analysis
 from petpal.utils.time_activity_curve import TimeActivityCurve
 from petpal.utils.dimension import gen_3d_img_from_timeseries
-from ..kinetic_model_base import ParametricModel
-from ..region_models.logan_ref import LoganRefConfig
-from ...meta.auto_cli import auto_cli
+from .kinetic_model_base import ParametricModel
+from .logan_ref import LoganRefConfig
+from ..meta.auto_cli import auto_cli
 
 class LoganRefParametric(LoganRefConfig, ParametricModel):
 
