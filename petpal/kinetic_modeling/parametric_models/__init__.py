@@ -1,4 +1,4 @@
-from . import logan_ref
+from . import logan_ref_parametric
 
 def main():
     print("PETPAL - Parametric Models")

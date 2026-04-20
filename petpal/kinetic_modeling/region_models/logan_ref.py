@@ -1,18 +1,6 @@
 """Regional kinetic modeling with Logan (reference region)"""
-from abc import ABC, abstractmethod
-from collections import namedtuple
-from typing import Sequence, Protocol, Dict, Type, Any, Optional, Callable
-import tempfile
-import os
-import dataclasses
-import numpy as np
-import pandas as pd
-import ants
-from petpal.kinetic_modeling import graphical_analysis, reference_tissue_models
+from petpal.kinetic_modeling import graphical_analysis
 from petpal.utils.time_activity_curve import TimeActivityCurve
-from petpal.utils.scan_timing import ScanTimingInfo
-from petpal.io.table import TableSaver, RegionalTacsLoader
-from petpal.utils.dimension import gen_3d_img_from_timeseries
 from ..kinetic_model_base import ModelConfig
 from ...meta.auto_cli import auto_cli
 

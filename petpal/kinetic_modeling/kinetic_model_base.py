@@ -92,7 +92,7 @@ class ModelConfig:
 
 class ParametricModel(ModelConfig):
 
-    def run_parametric_model(self, pet_arr: np.ndarray):
+    def run_parametric_model(self, pet_arr: np.ndarray) -> np.ndarray:
         img_dims = pet_arr.shape
 
         result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
@@ -101,8 +101,8 @@ class ParametricModel(ModelConfig):
             for j in range(0, img_dims[1], 1):
                 for k in range(0, img_dims[2], 1):
                     voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
-                                                    activity=pet_arr[i,j,k,:])
+                                                  activity=pet_arr[i,j,k,:])
                     result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
-                                                    region_tac=voxel_tac)
+                                                         region_tac=voxel_tac)
 
         return result_arr

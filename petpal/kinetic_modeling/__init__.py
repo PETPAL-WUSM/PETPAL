@@ -7,6 +7,7 @@ from . import tcms_as_convolutions
 from . import fit_tac_with_rtms
 from . import rtm_analysis
 from . import tac_uncertainty
+from . import kinetic_model_base
 from . import region_models
 from . import parametric_models
 
