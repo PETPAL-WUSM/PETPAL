@@ -206,7 +206,7 @@ class LoganRefConfig(ModelConfig):
     def __init__(self):
         super().__init__(model_solver=graphical_analysis.logan_ref_region_analysis_with_rsquared,
                          required_pars=["t_star","k2_prime"],
-                         fitted_pars=['DVR','Intercept','R-squared','BP'])
+                         fitted_pars=['DVR','Intercept','RSquared','BP'])
 
 
     def run_model(self,
@@ -269,6 +269,20 @@ class LoganRefParametric(LoganRefConfig):
         return result_arr
 
     def __call__(self, input_image_path: str, out_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
+        """
+        Fit all voxels in PET image with Logan reference kinetic model.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image on which Logan ref is used to model
+                activity on each voxel.
+            out_image_prefix (str): Directory and filename prefix for output images. Ensure to
+                include the destination folder as well as the prefix. One image is written for each
+                fitted parameter in the model.
+            tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
+            reference_region (str): Label for the reference region in the TACs spreadsheet.
+            t_star (str): Beginning model time for Logan reference.
+            k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
+        """
         input_img = ants.image_read(input_image_path)
         self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
         self.reference_tac = self.tacs[reference_region]
