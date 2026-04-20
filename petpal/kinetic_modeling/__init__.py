@@ -8,8 +8,8 @@ from . import fit_tac_with_rtms
 from . import rtm_analysis
 from . import tac_uncertainty
 from . import kinetic_model_base
-from . import region_models
-from . import parametric_models
+from . import logan_ref
+from . import logan_ref_parametric
 
 def main():
     print("PETPAL - Kinetic Modeling")
