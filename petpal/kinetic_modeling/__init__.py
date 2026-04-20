@@ -7,7 +7,8 @@ from . import tcms_as_convolutions
 from . import fit_tac_with_rtms
 from . import rtm_analysis
 from . import tac_uncertainty
-
+from . import region_models
+from . import parametric_models
 
 def main():
     print("PETPAL - Kinetic Modeling")

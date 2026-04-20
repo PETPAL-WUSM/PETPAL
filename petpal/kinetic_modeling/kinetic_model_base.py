@@ -15,6 +15,7 @@ from petpal.utils.scan_timing import ScanTimingInfo
 from petpal.io.table import TableSaver, RegionalTacsLoader
 from petpal.utils.dimension import gen_3d_img_from_timeseries
 
+
 class ModelConfig:
     r"""
     Base class for config settings to apply to kinetic models
@@ -89,39 +90,6 @@ class ModelConfig:
         return fit_results
 
 
-class LoganRefConfig(ModelConfig):
-    """Config settings for logan reference tissue"""
-    def __init__(self):
-        super().__init__(model_solver=graphical_analysis.logan_ref_region_analysis_with_rsquared,
-                         required_pars=["t_star","k2_prime"],
-                         fitted_pars=['DVR','Intercept','RSquared','BP'])
-
-
-    def run_model(self,
-                  reference_tac: TimeActivityCurve,
-                  region_tac: TimeActivityCurve):
-        """Run logan reference"""
-        fits = self.model_solver(tac_times_in_minutes=reference_tac.times,
-                        input_tac_values=reference_tac.activity,
-                        region_tac_values=region_tac.activity,
-                        t_thresh_in_minutes=self.model_pars.t_star,
-                        k2_prime=self.model_pars.k2_prime)
-        bp = fits[0] - 1
-        fit_result = [*fits, bp]
-        return fit_result
-
-    def __call__(self,
-                 reference_region,
-                 regional_tacs_path,
-                 save_path,
-                 t_star: float,
-                 k2_prime: float):
-        self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
-        fit_results = self.fit_regions()
-        self.table_saver.save(fit_results, save_path)
-
 class ParametricModel(ModelConfig):
 
     def run_parametric_model(self, pet_arr: np.ndarray):
@@ -138,46 +106,3 @@ class ParametricModel(ModelConfig):
                                                     region_tac=voxel_tac)
 
         return result_arr
-
-class LoganRefParametric(LoganRefConfig):
-
-    def run_parametric_model(self, pet_arr: np.ndarray) -> np.ndarray:
-        img_dims = pet_arr.shape
-
-        result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
-
-        for i in range(0, img_dims[0], 1):
-            for j in range(0, img_dims[1], 1):
-                for k in range(0, img_dims[2], 1):
-                    voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
-                                                  activity=pet_arr[i,j,k,:])
-                    result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
-                                                         region_tac=voxel_tac)
-
-        return result_arr
-
-    def __call__(self, input_image_path: str, out_image_prefix: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
-        """
-        Fit all voxels in PET image with Logan reference kinetic model.
-
-        Args:
-            input_image_path (str): Path to dynamic PET image on which Logan ref is used to model
-                activity on each voxel.
-            out_image_prefix (str): Directory and filename prefix for output images. Ensure to
-                include the destination folder as well as the prefix. One image is written for each
-                fitted parameter in the model.
-            tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
-            reference_region (str): Label for the reference region in the TACs spreadsheet.
-            t_star (str): Beginning model time for Logan reference.
-            k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
-        """
-        input_img = ants.image_read(input_image_path)
-        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
-        pet_arr = input_img.numpy()
-        result_arr = self.run_parametric_model(pet_arr=pet_arr)
-        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
-        for i, par in enumerate(self.fitted_pars):
-            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
-            ants.image_write(out_img, f"{out_image_prefix}_model-LoganRef_{par}.nii.gz")
