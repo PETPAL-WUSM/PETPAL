@@ -14,6 +14,7 @@ from petpal.utils.scan_timing import ScanTimingInfo
 from petpal.io.table import TableSaver, RegionalTacsLoader
 from petpal.utils.dimension import gen_3d_img_from_timeseries
 from ..region_models.logan_ref import LoganRefConfig
+from ...meta.auto_cli import auto_cli
 
 class LoganRefParametric(LoganRefConfig):
 
@@ -57,3 +58,10 @@ class LoganRefParametric(LoganRefConfig):
         for i, par in enumerate(self.fitted_pars):
             out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
             ants.image_write(out_img, f"{out_image_prefix}_model-LoganRef_{par}.nii.gz")
+
+
+def main():
+    auto_cli(petpal_class=LoganRefParametric)
+
+if __name__=='__main__':
+    main()

@@ -14,6 +14,7 @@ from petpal.utils.scan_timing import ScanTimingInfo
 from petpal.io.table import TableSaver, RegionalTacsLoader
 from petpal.utils.dimension import gen_3d_img_from_timeseries
 from ..kinetic_model_base import ModelConfig
+from ...meta.auto_cli import auto_cli
 
 class LoganRefConfig(ModelConfig):
     """Config settings for logan reference tissue"""
@@ -47,3 +48,10 @@ class LoganRefConfig(ModelConfig):
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)
+
+
+def main():
+    auto_cli(petpal_class=LoganRefConfig)
+
+if __name__=='__main__':
+    main()
