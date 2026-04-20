@@ -8,6 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 import dataclasses
 import pandas as pd
+import numpy as np
 
 
 def get_tabular_separator(ext: str) -> str:
