@@ -62,6 +62,8 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-moco = "petpal.preproc.motion_corr:main"
     petpal-target = "petpal.preproc.motion_target:main"
     petpal-register = "petpal.preproc.register:main"
+    petpal-logan-ref = "petpal.kinetic_modeling.logan_ref:main"
+    petpal-logan-ref-parametric = "petpal.kinetic_modeling.logan_ref_parametric:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"
