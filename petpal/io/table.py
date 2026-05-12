@@ -105,7 +105,10 @@ class RegionalTacsLoader:
 
     def load_tacs_sheet(self,tacs_path: str):
         """Load TACs from a spreadsheet."""
-        tacs_sheet = pd.read_csv(tacs_path, sep=None, engine='python')
+        if Path(tacs_path).suffix=='.tsv':
+            tacs_sheet = pd.read_csv(tacs_path, sep=r'\s+', engine='python')
+        else:
+            tacs_sheet = pd.read_csv(tacs_path, sep=None, engine='python')
         self.tacs_sheet = tacs_sheet
         self.validate_tacs_sheet_columns()
         self.normalize_tacs_sheet_types()
@@ -132,10 +135,6 @@ class RegionalTacsLoader:
             raise KeyError("TACs sheet must include at least one region activity column (columns "
                            "after frame start/end).")
 
-        missing_unc = [f"{r}_unc" for r in region_candidates if f"{r}_unc" not in columns]
-        if missing_unc:
-            raise KeyError(f"Missing uncertainty column(s) for region(s): {missing_unc}")
-
     def normalize_tacs_sheet_types(self):
         """Convert relevant TACs sheet columns to numeric and persist back to self.tacs_sheet.
 
@@ -157,13 +156,15 @@ class RegionalTacsLoader:
             if activity.isna().any():
                 raise ValueError(f"Region activity column '{region_col}' must contain numeric "
                                  "values for every frame.")
-            unc_col = f"{region_col}_unc"
-            uncertainty = pd.to_numeric(tacs_sheet[unc_col], errors='coerce')
-            if uncertainty.isna().any():
-                raise ValueError(f"Uncertainty column '{unc_col}' must contain numeric values "
-                                 "for every frame.")
             tacs_sheet[region_col] = activity.astype(np.float64)
-            tacs_sheet[unc_col] = uncertainty.astype(np.float64)
+
+            unc_col = f"{region_col}_unc"
+            if unc_col in tacs_sheet.columns:
+                uncertainty = pd.to_numeric(tacs_sheet[unc_col], errors='coerce')
+                if uncertainty.isna().any():
+                    raise ValueError(f"Uncertainty column '{unc_col}' must contain numeric values "
+                                    "for every frame.")
+                tacs_sheet[unc_col] = uncertainty.astype(np.float64)
 
         self.tacs_sheet = tacs_sheet
 
@@ -197,10 +198,14 @@ class RegionalTacsLoader:
         frame_starts = self.timing().start.to_numpy()
         for region in regions:
             region_activity = tacs_sheet[region].to_numpy()
-            region_uncertainty = tacs_sheet[f'{region}_unc'].to_numpy()
-            tac = TimeActivityCurve(times=frame_starts,
-                                    activity=region_activity,
-                                    uncertainty=region_uncertainty)
+            if f'{region}_unc' in tacs_sheet.columns:
+                region_uncertainty = tacs_sheet[f'{region}_unc'].to_numpy()
+                tac = TimeActivityCurve(times=frame_starts,
+                                        activity=region_activity,
+                                        uncertainty=region_uncertainty)
+            else:
+                tac = TimeActivityCurve(times=frame_starts,
+                                        activity=region_activity)
             tacs[region] = tac
         return tacs
 
