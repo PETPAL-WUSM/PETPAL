@@ -26,11 +26,22 @@ class LoganRefConfig(ModelConfig):
         return fit_result
 
     def __call__(self,
-                 reference_region,
-                 regional_tacs_path,
-                 save_path,
+                 reference_region: str,
+                 regional_tacs_path: str,
+                 save_path: str,
                  t_star: float,
                  k2_prime: float):
+        """
+        Fit all regions with Logan reference kinetic model.
+
+        Args:
+            
+            reference_region (str): Label for the reference region in the TACs spreadsheet.
+            regional_tacs_path (str): Path to TACs spreadsheet.
+            save_path (str): Path to where modeling parameters are saved.
+            t_star (str): Beginning model time for Logan reference.
+            k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
+        """
         self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
         self.reference_tac = self.tacs[reference_region]
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
