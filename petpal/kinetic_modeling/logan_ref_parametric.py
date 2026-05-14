@@ -10,7 +10,7 @@ from ..meta.auto_cli import auto_cli
 
 class LoganRefParametric(LoganRefConfig, ParametricModel):
 
-    def __call__(self, input_image_path: str, out_image_prefix: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
+    def __call__(self, input_image_path: str, out_image_prefix: str, mask_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
         """
         Fit all voxels in PET image with Logan reference kinetic model.
 
@@ -26,11 +26,13 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
         """
         input_img = ants.image_read(input_image_path)
+        mask_img = ants.image_read(mask_image_path)
         self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
         self.reference_tac = self.tacs[reference_region]
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         pet_arr = input_img.numpy()
-        result_arr = self.run_parametric_model(pet_arr=pet_arr)
+        mask_arr = mask_img.numpy()
+        result_arr = self.run_parametric_model(pet_arr=pet_arr, mask_arr=mask_arr)
         out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
         for i, par in enumerate(self.fitted_pars):
             out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
