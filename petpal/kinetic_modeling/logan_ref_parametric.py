@@ -20,6 +20,8 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
             out_image_prefix (str): Directory and filename prefix for output images. Ensure to
                 include the destination folder as well as the prefix. One image is written for each
                 fitted parameter in the model.
+            mask_image_path (str): Path to 3D mask image aligned with PET image, where positive
+                mask values represent voxels where the kinetic model is calculated.
             tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
             reference_region (str): Label for the reference region in the TACs spreadsheet.
             t_star (str): Beginning model time for Logan reference.
