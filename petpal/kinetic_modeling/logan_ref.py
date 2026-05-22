@@ -26,6 +26,12 @@ class LoganRefConfig(ModelConfig):
         fit_result = [*fits, bp]
         return fit_result
 
+    def set_tacs_data(self,
+                       tacs_path: str,
+                       reference_region: str):
+        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+
     def __call__(self,
                  reference_region: str,
                  regional_tacs_path: str,
@@ -43,8 +49,6 @@ class LoganRefConfig(ModelConfig):
             t_star (str): Beginning model time for Logan reference.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
         """
-        self.tacs = self.tacs_loader.load(tacs_path=regional_tacs_path)
-        self.reference_tac = self.tacs[reference_region]
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)

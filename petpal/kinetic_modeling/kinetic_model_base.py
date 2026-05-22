@@ -94,21 +94,7 @@ class ModelConfig:
 
 class ParametricModel(ModelConfig):
 
-    def setup_parametric_model():
-        input_img = ants.image_read(input_image_path)
-        mask_img = ants.image_read(mask_image_path)
-        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-        pet_arr = input_img.numpy()
-        mask_arr = mask_img.numpy()
-        result_arr = self.run_parametric_model(pet_arr=pet_arr, mask_arr=mask_arr)
-        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
-        for i, par in enumerate(self.fitted_pars):
-            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
-            ants.image_write(out_img,
-                             f"{out_image_prefix}_model-{self.model_name}_{par}.nii.gz")
-
-    def run_parametric_model(self, pet_arr: np.ndarray, mask_arr: np.ndarray) -> np.ndarray:
+    def model_parametric_img(self, pet_arr: np.ndarray, mask_arr: np.ndarray) -> np.ndarray:
         img_dims = pet_arr.shape
 
         result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
@@ -118,8 +104,28 @@ class ParametricModel(ModelConfig):
                 for k in range(0, img_dims[2], 1):
                     if mask_arr[i,j,k]>0:
                         voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
-                                                    activity=pet_arr[i,j,k,:])
+                                                      activity=pet_arr[i,j,k,:])
                         result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
-                                                            region_tac=voxel_tac)
+                                                             region_tac=voxel_tac)
 
         return result_arr
+
+    def run_save_parametric_model(self,
+                                  input_image_path: str,
+                                  mask_image_path: str,
+                                  out_image_prefix: str,
+                                  tacs_path: str,
+                                  reference_region: str):
+        input_img = ants.image_read(input_image_path)
+        mask_img = ants.image_read(mask_image_path)
+        pet_arr = input_img.numpy()
+        mask_arr = mask_img.numpy()
+
+        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
+        self.set_tacs_data(tacs_path=tacs_path,
+                           reference_region=reference_region)
+        result_arr = self.model_parametric_img(pet_arr=pet_arr, mask_arr=mask_arr)
+        for i, par in enumerate(self.fitted_pars):
+            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
+            ants.image_write(out_img,
+                             f"{out_image_prefix}_model-{self.model_name}_{par}.nii.gz")

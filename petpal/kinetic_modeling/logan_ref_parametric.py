@@ -8,6 +8,7 @@ from .kinetic_model_base import ParametricModel
 from .logan_ref import LoganRefConfig
 from ..meta.auto_cli import auto_cli
 
+
 class LoganRefParametric(LoganRefConfig, ParametricModel):
 
     def __call__(self, input_image_path: str, out_image_prefix: str, mask_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
@@ -28,18 +29,11 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
         """
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
-        input_img = ants.image_read(input_image_path)
-        mask_img = ants.image_read(mask_image_path)
-        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
-        pet_arr = input_img.numpy()
-        mask_arr = mask_img.numpy()
-        result_arr = self.run_parametric_model(pet_arr=pet_arr, mask_arr=mask_arr)
-        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
-        for i, par in enumerate(self.fitted_pars):
-            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
-            ants.image_write(out_img, f"{out_image_prefix}_model-LoganRef_{par}.nii.gz")
+        self.run_save_parametric_model(input_image_path=input_image_path,
+                                       mask_image_path=mask_image_path,
+                                       out_image_prefix=out_image_prefix,
+                                       tacs_path=tacs_path,
+                                       reference_region=reference_region)
 
 
 def main():
