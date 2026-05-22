@@ -112,10 +112,23 @@ class ParametricModel(ModelConfig):
 
     def run_save_parametric_model(self,
                                   input_image_path: str,
-                                  mask_image_path: str,
                                   out_image_prefix: str,
+                                  mask_image_path: str,
                                   tacs_path: str,
                                   reference_region: str):
+        """Set up, run, and save parametric kinetic model.
+
+        Args:
+            input_image_path (str): Path to dynamic PET image on which Logan ref is used to model
+                activity on each voxel.
+            out_image_prefix (str): Directory and filename prefix for output images. Ensure to
+                include the destination folder as well as the prefix. One image is written for each
+                fitted parameter in the model.
+            mask_image_path (str): Path to 3D mask image aligned with PET image, where positive
+                mask values represent voxels where the kinetic model is calculated.
+            tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
+            reference_region (str): Label for the reference region in the TACs spreadsheet.
+        """
         input_img = ants.image_read(input_image_path)
         mask_img = ants.image_read(mask_image_path)
         pet_arr = input_img.numpy()
