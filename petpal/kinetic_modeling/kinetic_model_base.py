@@ -95,6 +95,17 @@ class ModelConfig:
 class ParametricModel(ModelConfig):
 
     def model_parametric_img(self, pet_arr: np.ndarray, mask_arr: np.ndarray) -> np.ndarray:
+        """Calculate kinetic model for each voxel in the PET image that's in the provided mask.
+
+        Args:
+            pet_arr (np.ndarray): Array containing dynamic PET data.
+            mask_arr (np.ndarray): Array of 3D mask indicating voxels on which to run the kinetic
+                model.
+
+        Returns:
+            result_arr (np.ndarray): Array of results from the kinetic model on each voxel. Last
+                axis is the size of `self.fitted_pars`.
+        """
         img_dims = pet_arr.shape
 
         result_arr = np.zeros((img_dims[0],img_dims[1], img_dims[2], len(self.fitted_pars)), float)
