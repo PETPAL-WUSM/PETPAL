@@ -21,6 +21,7 @@ class ModelConfig:
     Base class for config settings to apply to kinetic models
     """
     def __init__(self,
+                 model_name: str,
                  model_solver: Callable,
                  required_pars: list[str],
                  fitted_pars: list[str],
@@ -29,6 +30,7 @@ class ModelConfig:
         r"""
         Initialize a TCM model configuration.
         """
+        self.model_name = model_name
         self.model_solver = model_solver
         self.required_pars = required_pars
         self.fitted_pars = fitted_pars
@@ -91,6 +93,20 @@ class ModelConfig:
 
 
 class ParametricModel(ModelConfig):
+
+    def setup_parametric_model():
+        input_img = ants.image_read(input_image_path)
+        mask_img = ants.image_read(mask_image_path)
+        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+        pet_arr = input_img.numpy()
+        mask_arr = mask_img.numpy()
+        result_arr = self.run_parametric_model(pet_arr=pet_arr, mask_arr=mask_arr)
+        out_img_template = gen_3d_img_from_timeseries(input_img=input_img)
+        for i, par in enumerate(self.fitted_pars):
+            out_img = ants.from_numpy_like(result_arr[:,:,:,i], out_img_template)
+            ants.image_write(out_img,
+                             f"{out_image_prefix}_model-{self.model_name}_{par}.nii.gz")
 
     def run_parametric_model(self, pet_arr: np.ndarray, mask_arr: np.ndarray) -> np.ndarray:
         img_dims = pet_arr.shape

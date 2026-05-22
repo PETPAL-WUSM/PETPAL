@@ -7,7 +7,8 @@ from ..meta.auto_cli import auto_cli
 class LoganRefConfig(ModelConfig):
     """Config settings for logan reference tissue"""
     def __init__(self):
-        super().__init__(model_solver=graphical_analysis.logan_ref_region_analysis_with_rsquared,
+        super().__init__(model_name='LoganRef',
+                         model_solver=graphical_analysis.logan_ref_region_analysis_with_rsquared,
                          required_pars=["t_star","k2_prime"],
                          fitted_pars=['DVR','Intercept','RSquared','BP'])
 

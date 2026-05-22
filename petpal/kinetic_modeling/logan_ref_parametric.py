@@ -27,6 +27,7 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
             t_star (str): Beginning model time for Logan reference.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
         """
+        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
         input_img = ants.image_read(input_image_path)
         mask_img = ants.image_read(mask_image_path)
         self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
