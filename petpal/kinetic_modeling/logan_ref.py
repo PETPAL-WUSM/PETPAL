@@ -50,6 +50,7 @@ class LoganRefConfig(ModelConfig):
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
         """
         self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
+        self.set_tacs_data(tacs_path=regional_tacs_path, reference_region=reference_region)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)
 
