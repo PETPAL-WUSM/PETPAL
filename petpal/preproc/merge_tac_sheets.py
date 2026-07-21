@@ -4,11 +4,11 @@ import pandas as pd
 from petpal.io.table import TableSaver, RegionalTacsLoader
 from petpal.meta.auto_cli import auto_cli
 
+
 class MergeTacSheets:
     def __init__(self):
         self.tacs_loader = RegionalTacsLoader()
         self.table_saver = TableSaver()
-
 
     def validate_tac_sheet_timing_identical(self, tac_sheet_left: pd.DataFrame, tac_sheet_right: pd.DataFrame):
         tac_sheet_left_times = tac_sheet_left['frame_start(min)']
@@ -23,7 +23,6 @@ class MergeTacSheets:
 
         if not (tac_sheet_left_times==tac_sheet_right_times).all():
             raise ValueError("TAC sheet timing labels match, but the values are not identical.")
-
 
     def __call__(self, tac_sheet_left_path: str, tac_sheet_right_path: str, out_merged_tacs_path: str):
         """Merge TACs from two different spreadsheets and save the result. Useful when working with
@@ -43,5 +42,6 @@ class MergeTacSheets:
 
         tac_sheet_merged = pd.merge(left=tac_sheet_left, right=tac_sheet_right)
         self.table_saver.save(df=tac_sheet_merged, path=out_merged_tacs_path)
+
 
 auto_cli(petpal_class=MergeTacSheets)
