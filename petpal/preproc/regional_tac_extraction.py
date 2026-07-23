@@ -491,4 +491,8 @@ class WriteRegionalTacs:
                         one_tsv_per_region=one_tsv_per_region,
                         **tac_calc_kwargs)
 
-auto_cli(WriteRegionalTacs)
+def main():
+    auto_cli(WriteRegionalTacs)
+
+if __name__=='__main__':
+    main()

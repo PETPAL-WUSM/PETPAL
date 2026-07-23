@@ -43,5 +43,8 @@ class MergeTacSheets:
         tac_sheet_merged = pd.merge(left=tac_sheet_left, right=tac_sheet_right)
         self.table_saver.save(df=tac_sheet_merged, path=out_merged_tacs_path)
 
+def main():
+    auto_cli(petpal_class=MergeTacSheets)
 
-auto_cli(petpal_class=MergeTacSheets)
+if __name__=='__main__':
+    main()
