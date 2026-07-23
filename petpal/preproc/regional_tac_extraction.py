@@ -15,6 +15,7 @@ from ..utils.scan_timing import ScanTimingInfo
 from ..utils.dimension import check_physical_space_for_ants_image_pair
 from ..utils.time_activity_curve import TimeActivityCurve
 from ..meta.label_maps import LabelMapLoader
+from ..meta.auto_cli import auto_cli
 
 def extract_roi_voxel_tacs_from_image_using_mask(input_image: ants.core.ANTsImage,
                                                  mask_image: ants.core.ANTsImage,
@@ -489,3 +490,5 @@ class WriteRegionalTacs:
                         out_tac_dir=out_tac_dir,
                         one_tsv_per_region=one_tsv_per_region,
                         **tac_calc_kwargs)
+
+auto_cli(WriteRegionalTacs)
