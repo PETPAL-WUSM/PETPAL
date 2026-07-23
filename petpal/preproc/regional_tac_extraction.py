@@ -288,32 +288,20 @@ class WriteRegionalTacs:
 
     """
     def __init__(self,
-                 input_image_path: str | pathlib.Path,
-                 segmentation_path: str | pathlib.Path,
-                 label_map: str | dict,
                  tac_extraction_func: Callable=voxel_average_w_uncertainty):
         """Initialize WriteRegionalTacs.
         
         Args:
-            input_image_path (str | pathlib.Path): Path to input 4D PET image.
-            segmentation_path (str | pathlib.Path): Path to 3D discrete segmentation image. Must
-                match input PET image space.
-            label_map (str | dict): Label map for use in the study. Provide name of a preset
-                label map option such as 'freesurfer', the path to a label map JSON file, or a
-                Python dictionary with region mappings. For more details, see
-                :class:`LabelMapLoader<petpal.meta.label_maps.LabelMapLoader>`.
             tac_extraction_func (Callable): Function to get TAC from 2D array of voxels. Default
                 :func:`~petpal.preproc.regional_tac_extraction.voxel_average_w_uncertainty`.
         """
-        self.pet_arr = ants.image_read(filename=input_image_path).numpy()
-        self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
-
+        self.pet_arr: np.ndarray = None
+        self.seg_arr: np.ndarray = None
+        self.scan_timing: ScanTimingInfo = None
         self.tac_extraction_func = tac_extraction_func
-        self.scan_timing = ScanTimingInfo.from_nifti(input_image_path)
 
-        label_map_dict = LabelMapLoader(label_map_option=label_map).label_map
-        self.region_names = list(label_map_dict.keys())
-        self.region_maps = list(label_map_dict.values())
+        self.region_names: list = None
+        self.region_maps: list = None
 
     def set_tac_extraction_func(self, tac_extraction_func: Callable):
         """Sets the tac extraction function used to a different function.
@@ -465,6 +453,9 @@ class WriteRegionalTacs:
             tacs_data.to_csv(f'{out_tac_dir}/{out_tac_prefix}_multitacs.tsv', sep='\t', index=False)
 
     def __call__(self,
+                 input_image_path: str | pathlib.Path,
+                 segmentation_path: str | pathlib.Path,
+                 label_map: str | dict,
                  out_tac_prefix: str,
                  out_tac_dir: str | pathlib.Path,
                  one_tsv_per_region: bool=True,
@@ -472,12 +463,28 @@ class WriteRegionalTacs:
         """Runs TAC computation and writing by running `self.write_tacs`.
         
         Args:
+            input_image_path (str | pathlib.Path): Path to input 4D PET image.
+            segmentation_path (str | pathlib.Path): Path to 3D discrete segmentation image. Must
+                match input PET image space.
+            label_map (str | dict): Label map for use in the study. Provide name of a preset
+                label map option such as 'freesurfer', the path to a label map JSON file, or a
+                Python dictionary with region mappings. For more details, see
+                :class:`LabelMapLoader<petpal.meta.label_maps.LabelMapLoader>`.
             out_tac_prefix (str): Prefix for the output files, usually the BIDS subject and
                 session ID.
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
                 image. If False, write one TSV file with all TACs in the image.
             **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func."""
+        self.pet_arr = ants.image_read(filename=input_image_path).numpy()
+        self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
+
+        self.scan_timing = ScanTimingInfo.from_nifti(input_image_path)
+
+        label_map_dict = LabelMapLoader(label_map_option=label_map).label_map
+        self.region_names = list(label_map_dict.keys())
+        self.region_maps = list(label_map_dict.values())
+
         self.write_tacs(out_tac_prefix=out_tac_prefix,
                         out_tac_dir=out_tac_dir,
                         one_tsv_per_region=one_tsv_per_region,
