@@ -1,8 +1,8 @@
 """Merge TACs from two different spreadsheets and save the result. Useful when working with
 multiple types of segmentations in one study."""
 import pandas as pd
-from petpal.io.table import TableSaver, RegionalTacsLoader
-from petpal.meta.auto_cli import auto_cli
+from ..io.table import TableSaver, RegionalTacsLoader
+from ..meta.auto_cli import auto_cli
 
 
 class MergeTacSheets:
