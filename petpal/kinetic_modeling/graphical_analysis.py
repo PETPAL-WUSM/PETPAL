@@ -133,7 +133,7 @@ def linear_least_squares_fit_with_stats(xdata: np.ndarray,
 
     se_intercept = s*np.sqrt(1/n+np.mean(xdata)**2/sum_square_xdiff)
     se_slope = s*sum_square_xdiff**(-0.5)
-    return fit_ans[0][0], fit_ans[0][1], r_squared, se_intercept, se_slope
+    return fit_ans[0][0], fit_ans[0][1], r_squared, se_slope, se_intercept
 
 @numba.njit()
 def cumulative_trapezoidal_integral(xdata: np.ndarray,
@@ -493,12 +493,12 @@ def logan_ref_region_analysis_with_rsquared(tac_times_in_minutes: np.ndarray,
 
 
 @numba.njit
-def logan_ref_region_time_range(tac_times_in_minutes: np.ndarray,
-                                input_tac_values: np.ndarray,
-                                region_tac_values: np.ndarray,
-                                k2_prime: float,
-                                start_time: float,
-                                end_time: float=600) -> tuple[float, float, float]:
+def logan_ref_region_solver(tac_times_in_minutes: np.ndarray,
+                            input_tac_values: np.ndarray,
+                            region_tac_values: np.ndarray,
+                            k2_prime: float,
+                            start_time: float,
+                            end_time: float=600) -> tuple[float, float, float]:
     """
     Performs Logan with reference region input function on given input TAC, regional TAC, times,
     threshold, and population averaged reference region k2.
@@ -512,7 +512,7 @@ def logan_ref_region_time_range(tac_times_in_minutes: np.ndarray,
         end_time (np.ndarray): Time point (in minutes) to end integration. Default 600.
 
     Returns:
-        tuple: (slope, intercept, :math:`R^2`)
+        tuple: (slope, intercept, :math:`R^2`, slope standard error, intercept standard error)
 
     .. important::
         * The interpretation of the values depends on the underlying kinetic model.
@@ -543,7 +543,7 @@ def logan_ref_region_time_range(tac_times_in_minutes: np.ndarray,
     logan_x = logan_x_numerator / logan_denominator
     logan_y = logan_y[non_zero_indices][start_index:end_index] / logan_denominator
 
-    logan_values = fit_line_to_data_using_lls_with_rsquared(xdata=logan_x, ydata=logan_y)
+    logan_values = linear_least_squares_fit_with_stats(xdata=logan_x, ydata=logan_y)
 
     return logan_values
 
