@@ -11,7 +11,15 @@ from ..meta.auto_cli import auto_cli
 
 class LoganRefParametric(LoganRefConfig, ParametricModel):
 
-    def __call__(self, input_image_path: str, out_image_prefix: str, mask_image_path: str, tacs_path: str, reference_region: str, t_star: float, k2_prime: float):
+    def __call__(self,
+                 input_image_path: str,
+                 out_image_prefix: str,
+                 mask_image_path: str,
+                 tacs_path: str,
+                 reference_region: str,
+                 k2_prime: float,
+                 start_time: float,
+                 end_time: float):
         """
         Fit all voxels in PET image with Logan reference kinetic model.
 
@@ -25,10 +33,12 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
                 mask values represent voxels where the kinetic model is calculated.
             tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
             reference_region (str): Label for the reference region in the TACs spreadsheet.
-            t_star (str): Beginning model time for Logan reference.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
+            start_time (np.ndarray): Time point (in minutes) to begin logan model integration.
+            end_time (np.ndarray): Time point (in minutes) to end logan model integration. Default
+                600.
         """
-        self.set_required_pars(t_star=t_star, k2_prime=k2_prime)
+        self.set_required_pars(k2_prime=k2_prime, start_time=start_time, end_time=end_time)
         self.run_save_parametric_model(input_image_path=input_image_path,
                                        mask_image_path=mask_image_path,
                                        out_image_prefix=out_image_prefix,
