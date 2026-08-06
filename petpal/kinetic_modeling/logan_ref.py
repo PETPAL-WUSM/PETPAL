@@ -2,7 +2,6 @@
 import numba
 import numpy as np
 
-from petpal.kinetic_modeling import graphical_analysis
 from petpal.kinetic_modeling.graphical_analysis import (cumulative_trapezoidal_integral,
                                                         get_index_from_threshold,
                                                         linear_least_squares_fit_with_stats)
