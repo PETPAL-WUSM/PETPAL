@@ -493,62 +493,6 @@ def logan_ref_region_analysis_with_rsquared(tac_times_in_minutes: np.ndarray,
 
 
 @numba.njit
-def logan_ref_region_solver(tac_times_in_minutes: np.ndarray,
-                            input_tac_values: np.ndarray,
-                            region_tac_values: np.ndarray,
-                            k2_prime: float,
-                            start_time: float,
-                            end_time: float=600) -> tuple[float, float, float]:
-    """
-    Performs Logan with reference region input function on given input TAC, regional TAC, times,
-    threshold, and population averaged reference region k2.
-
-    Args:
-        tac_times_in_minutes (np.ndarray): Array of times in minutes.
-        input_tac_values (np.ndarray): Array of input TAC values
-        region_tac_values (np.ndarray): Array of ROI TAC values
-        k2_prime (float): Population averaged k2 value for the reference region.
-        start_time (np.ndarray): Time point (in minutes) to begin integration.
-        end_time (np.ndarray): Time point (in minutes) to end integration. Default 600.
-
-    Returns:
-        tuple: (slope, intercept, :math:`R^2`, slope standard error, intercept standard error)
-
-    .. important::
-        * The interpretation of the values depends on the underlying kinetic model.
-        * We assume that the input TAC and ROI TAC values are sampled at the same times.
-        
-    """
-
-    non_zero_indices = np.argwhere(region_tac_values != 0.).T[0]
-
-    if len(non_zero_indices) <= 2:
-        return np.nan, np.nan, np.nan
-
-    start_index = get_index_from_threshold(times_in_minutes=tac_times_in_minutes[non_zero_indices],
-                                        t_thresh_in_minutes=start_time)
-
-    end_index = get_index_from_threshold(times_in_minutes=tac_times_in_minutes[non_zero_indices],
-                                        t_thresh_in_minutes=end_time)
-    
-    if len(tac_times_in_minutes[non_zero_indices][start_index:end_index]) <= 2:
-        return np.nan, np.nan, np.nan
-
-    logan_x = cumulative_trapezoidal_integral(xdata=tac_times_in_minutes, ydata=input_tac_values)
-    logan_y = cumulative_trapezoidal_integral(xdata=tac_times_in_minutes, ydata=region_tac_values)
-
-    logan_x_ref_region_term = input_tac_values[non_zero_indices][start_index:end_index]/k2_prime
-    logan_x_numerator = logan_x[non_zero_indices][start_index:end_index] + logan_x_ref_region_term
-    logan_denominator = region_tac_values[non_zero_indices][start_index:end_index]
-    logan_x = logan_x_numerator / logan_denominator
-    logan_y = logan_y[non_zero_indices][start_index:end_index] / logan_denominator
-
-    logan_values = linear_least_squares_fit_with_stats(xdata=logan_x, ydata=logan_y)
-
-    return logan_values
-
-
-@numba.njit
 def alternative_logan_analysis(tac_times_in_minutes: np.ndarray,
                                input_tac_values: np.ndarray,
                                region_tac_values: np.ndarray,
