@@ -17,7 +17,7 @@ def logan_ref_region_solver(times: np.ndarray,
                             region_activity: np.ndarray,
                             k2_prime: float,
                             start_time: float,
-                            end_time: float=600) -> tuple[float, float, float]:
+                            end_time: float=600) -> tuple[float, float, float, float, float]:
     """
     Performs Logan with reference region input function on given input TAC, regional TAC, times,
     threshold, and population averaged reference region k2.
@@ -73,7 +73,7 @@ class LoganRefConfig(ModelConfig):
         super().__init__(model_name='LoganRef',
                          model_solver=logan_ref_region_solver,
                          required_pars=["k2_prime","start_time","end_time"],
-                         fitted_pars=['DVR','Intercept','RSquared','BP'])
+                         fitted_pars=['DVR','Intercept','RSquared', 'SE_DVR', 'SE_intercept','BP'])
 
 
     def run_model(self,
@@ -111,8 +111,10 @@ class LoganRefConfig(ModelConfig):
             reference_region (str): Label for the reference region in the TACs spreadsheet.
             regional_tacs_path (str): Path to TACs spreadsheet.
             save_path (str): Path to where modeling parameters are saved.
-            t_star (str): Beginning model time for Logan reference.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
+            start_time (np.ndarray): Time point (in minutes) to begin logan model integration.
+            end_time (np.ndarray): Time point (in minutes) to end logan model integration. Default
+                600.
         """
         self.set_required_pars(k2_prime=k2_prime, start_time=start_time, end_time=end_time)
         self.set_tacs_data(tacs_path=regional_tacs_path, reference_region=reference_region)
