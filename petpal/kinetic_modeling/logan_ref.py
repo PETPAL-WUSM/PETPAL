@@ -41,7 +41,7 @@ def logan_ref_region_solver(times: np.ndarray,
     non_zero_indices = np.argwhere(region_activity != 0.).T[0]
 
     if len(non_zero_indices) <= 2:
-        return np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan
 
     start_index = get_index_from_threshold(times_in_minutes=times[non_zero_indices],
                                         t_thresh_in_minutes=start_time)
@@ -50,7 +50,7 @@ def logan_ref_region_solver(times: np.ndarray,
                                         t_thresh_in_minutes=end_time)
 
     if len(times[non_zero_indices][start_index:end_index]) <= 2:
-        return np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan
 
     logan_x = cumulative_trapezoidal_integral(xdata=times, ydata=reference_activity)
     logan_y = cumulative_trapezoidal_integral(xdata=times, ydata=region_activity)
