@@ -19,7 +19,7 @@ class LoganRefParametric(LoganRefConfig, ParametricModel):
                  reference_region: str,
                  k2_prime: float,
                  start_time: float,
-                 end_time: float):
+                 end_time: float=600):
         """
         Fit all voxels in PET image with Logan reference kinetic model.
 
