@@ -45,6 +45,12 @@ class ModelConfig:
         model_pars = namedtuple('Pars',self.required_pars)
         self.model_pars = model_pars(**pars)
 
+    def set_tacs_data(self,
+                       tacs_path: str,
+                       reference_region: str):
+        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
+        self.reference_tac = self.tacs[reference_region]
+
     def null_result(self) -> np.ndarray:
         """Return a numpy array of NaNs indexed by the model's fitted_pars."""
         n_fitted_pars = len(self.fitted_pars)

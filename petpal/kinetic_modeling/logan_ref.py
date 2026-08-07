@@ -89,12 +89,6 @@ class LoganRefConfig(ModelConfig):
         fit_result = [*fits, bp]
         return fit_result
 
-    def set_tacs_data(self,
-                       tacs_path: str,
-                       reference_region: str):
-        self.tacs = self.tacs_loader.load(tacs_path=tacs_path)
-        self.reference_tac = self.tacs[reference_region]
-
     def __call__(self,
                  reference_region: str,
                  regional_tacs_path: str,
