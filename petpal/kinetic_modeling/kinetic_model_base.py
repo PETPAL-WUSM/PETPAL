@@ -122,8 +122,11 @@ class ParametricModel(ModelConfig):
                     if mask_arr[i,j,k]>0:
                         voxel_tac = TimeActivityCurve(times=self.reference_tac.times,
                                                       activity=pet_arr[i,j,k,:])
-                        result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
-                                                             region_tac=voxel_tac)
+                        try:
+                            result_arr[i,j,k,:] = self.run_model(reference_tac=self.reference_tac,
+                                                                region_tac=voxel_tac)
+                        except Exception:
+                            result_arr[i,j,k,:] = self.null_result()
 
         return result_arr
 
