@@ -350,13 +350,12 @@ class WriteRegionalTacs:
             return True
         return False
 
-    def extract_tac(self,region_mapping: int | list[int], **tac_calc_kwargs) -> TimeActivityCurve:
+    def extract_tac(self,region_mapping: int | list[int]) -> TimeActivityCurve:
         """
         Run self.tac_extraction_func on one region and return the TAC.
 
         Args:
             region_mapping (int | list[int]): The integer ID or IDs corresponding to the ROI.
-            **tac_calc_kwargs: Additional keyword arguments passed on to tac_extraction_func.
     
         Returns:
             region_tac (TimeActivityCurve): The calculated TAC for the region. 
@@ -373,8 +372,7 @@ class WriteRegionalTacs:
             extracted_tac.fill(np.nan)
             uncertainty = extracted_tac.copy()
         else:
-            extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region,
-                                                                  **tac_calc_kwargs)
+            extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region)
         region_tac = TimeActivityCurve(times=self.scan_timing.center_in_mins,
                                        activity=extracted_tac,
                                        uncertainty=uncertainty)
@@ -407,8 +405,7 @@ class WriteRegionalTacs:
     def write_tacs(self,
                    out_tac_prefix: str,
                    out_tac_dir: str | pathlib.Path,
-                   one_tsv_per_region: bool=True,
-                   **tac_calc_kwargs):
+                   one_tsv_per_region: bool=True):
         """
         Function to write Tissue Activity Curves for each region, given a segmentation,
         4D PET image, and label map. Computes the average of the PET image within each
@@ -422,7 +419,6 @@ class WriteRegionalTacs:
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
                 image. If False, write one TSV file with all TACs in the image.
-            **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func.
 
         Raises:
             Warning: for each region without any matched voxels, warn user that TAC is skipped.
@@ -432,7 +428,7 @@ class WriteRegionalTacs:
         empty_regions = []
         for i,region_name in enumerate(self.region_names):
             mappings = self.region_maps[i]
-            tac = self.extract_tac(region_mapping=mappings, **tac_calc_kwargs)
+            tac = self.extract_tac(region_mapping=mappings)
             if tac.contains_any_nan:
                 empty_regions.append(region_name)
                 continue
@@ -459,8 +455,7 @@ class WriteRegionalTacs:
                  label_map: str | dict,
                  out_tac_prefix: str,
                  out_tac_dir: str | pathlib.Path,
-                 one_tsv_per_region: bool=True,
-                 **tac_calc_kwargs):
+                 one_tsv_per_region: bool=True):
         """Runs TAC computation and writing by running `self.write_tacs`.
         
         Args:
@@ -475,8 +470,7 @@ class WriteRegionalTacs:
                 session ID.
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image.
-            **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func."""
+                image. If False, write one TSV file with all TACs in the image."""
         self.pet_arr = ants.image_read(filename=input_image_path).numpy()
         self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
 
@@ -488,8 +482,7 @@ class WriteRegionalTacs:
 
         self.write_tacs(out_tac_prefix=out_tac_prefix,
                         out_tac_dir=out_tac_dir,
-                        one_tsv_per_region=one_tsv_per_region,
-                        **tac_calc_kwargs)
+                        one_tsv_per_region=one_tsv_per_region)
 
 def main():
     auto_cli(WriteRegionalTacs)
