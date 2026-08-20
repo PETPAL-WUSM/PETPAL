@@ -72,7 +72,8 @@ def main():
                         required=False,
                         default=False,
                         help="If False, ignores the zeroth ``0`` label in calculations, often used"
-                             " to exclude background or non-ROI regions. Defaults to False.")
+                             " to exclude background or non-ROI regions. Defaults to False.",
+                        action='store_true')
     parser.add_argument("-o",
                         "--output",
                         required=True,
@@ -80,12 +81,12 @@ def main():
                              "input image is 4D, writes to a directory.")
 
     args = parser.parse_args()
-
     sgtm_cli_run(input_image_path=args.input_image,
                  segmentation_image_path=args.segmentation_image,
                  fwhm=args.fwhm,
                  output_path=args.output,
-                 segmentation_label_map_path=args.segmentation_label_map)
+                 segmentation_label_map_path=args.segmentation_label_map,
+                 zeroth_roi=args.zeroth_roi)
 
 if __name__ == "__main__":
     main()
