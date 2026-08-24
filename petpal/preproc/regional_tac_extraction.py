@@ -405,7 +405,7 @@ class WriteRegionalTacs:
     def write_tacs(self,
                    out_tac_prefix: str,
                    out_tac_dir: str | pathlib.Path,
-                   one_tsv_per_region: bool=True):
+                   one_tsv_per_region: bool=False):
         """
         Function to write Tissue Activity Curves for each region, given a segmentation,
         4D PET image, and label map. Computes the average of the PET image within each
@@ -418,7 +418,7 @@ class WriteRegionalTacs:
                 session ID.
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image.
+                image. If False, write one TSV file with all TACs in the image. Default False.
 
         Raises:
             Warning: for each region without any matched voxels, warn user that TAC is skipped.
@@ -455,7 +455,7 @@ class WriteRegionalTacs:
                  label_map: str | dict,
                  out_tac_prefix: str,
                  out_tac_dir: str | pathlib.Path,
-                 one_tsv_per_region: bool=True):
+                 one_tsv_per_region: bool=False):
         """Runs TAC computation and writing by running `self.write_tacs`.
         
         Args:
@@ -470,7 +470,7 @@ class WriteRegionalTacs:
                 session ID.
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image."""
+                image. If False, write one TSV file with all TACs in the image. Default False."""
         self.pet_arr = ants.image_read(filename=input_image_path).numpy()
         self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
 
