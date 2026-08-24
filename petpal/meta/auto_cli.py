@@ -145,6 +145,9 @@ def auto_cli(petpal_class: object):
         for providing user flexibility where necessary, as it carries the risk of unintended
         behavior.
 
+        Bool arguments may not behave as expected. Do appropriate testing before final
+        implementation of an auto_cli.
+
     Example:
         
         .. code-block:: python
