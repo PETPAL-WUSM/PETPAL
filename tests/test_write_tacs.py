@@ -47,28 +47,6 @@ def patch_dependencies(monkeypatch):
     monkeypatch.setattr(rtx.TimeActivityCurve, "to_tsv", fake_to_tsv)
     yield
 
-def test_write_tacs_one_tsv_per_region_writes_only_non_nan_region(tmp_path, monkeypatch):
-    # apply_mask_4d returns non-NaN voxels for label 1 and all-NaN voxels for label 2
-    def fake_apply_mask_4d(input_arr, mask_arr, verbose=False):
-        if mask_arr == 1:
-            return np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])  # mean is finite
-        else:
-            return np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])  # mean is nan
-    monkeypatch.setattr(rtx, "apply_mask_4d", fake_apply_mask_4d)
-
-    wr = rtx.WriteRegionalTacs(input_image_path="in.nii", segmentation_path="seg.nii", label_map="dummy")
-    out_dir = tmp_path
-    wr.write_tacs(out_tac_prefix="sub-01", out_tac_dir=str(out_dir), one_tsv_per_region=True)
-    # Expect file for R1 only
-    f_r1 = out_dir / "sub-01_seg-R1_tac.tsv"
-    f_r2 = out_dir / "sub-01_seg-R2_tac.tsv"
-    assert f_r1.exists()
-    assert not f_r2.exists()
-    # Basic content check
-    content = f_r1.read_text()
-    assert "time\tactivity\tuncertainty" in content
-    assert "0.5\t" in content  # time present
-
 def test_write_tacs_multitac_writes_combined_file_and_skips_nan_regions(tmp_path, monkeypatch):
     # same masking behavior as previous test
     def fake_apply_mask_4d(input_arr, mask_arr, verbose=False):
@@ -78,9 +56,9 @@ def test_write_tacs_multitac_writes_combined_file_and_skips_nan_regions(tmp_path
             return np.array([[np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])
     monkeypatch.setattr(rtx, "apply_mask_4d", fake_apply_mask_4d)
 
-    wr = rtx.WriteRegionalTacs(input_image_path="in.nii", segmentation_path="seg.nii", label_map="dummy")
+    wr = rtx.WriteRegionalTacs()
     out_dir = tmp_path
-    wr.write_tacs(out_tac_prefix="sub-01", out_tac_dir=str(out_dir), one_tsv_per_region=False)
+    wr(input_image_path="in.nii", segmentation_path="seg.nii", label_map="dummy", out_tac_prefix="sub-01", out_tac_dir=str(out_dir))
     combined = out_dir / "sub-01_multitacs.tsv"
     assert combined.exists()
     txt = combined.read_text()
