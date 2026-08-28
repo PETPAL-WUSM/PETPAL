@@ -18,7 +18,7 @@ def get_tabular_separator(ext: str) -> str:
     """Get the separator corresponding to a given tabular data filetype.
     
     '.csv' will return ',' while '.tsv' and '.txt' will return '\t'. Any other input will raise a
-    ValueError.
+    KeyError.
     
     Args:
         ext (str): Extension to get matching separator for.
@@ -27,7 +27,7 @@ def get_tabular_separator(ext: str) -> str:
         sep (str): Separator matched from extension.
     
     Raises:
-        ValueError: If extension is not .csv or .tsv.
+        KeyError: If extension is not .csv or .tsv.
     """
     matching_separators = {'.csv': ',', '.tsv': '\t', '.txt': '\t'}
     try:
