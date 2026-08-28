@@ -32,9 +32,9 @@ def get_tabular_separator(ext: str) -> str:
     matching_separators = {'.csv': ',', '.tsv': '\t', '.txt': '\t'}
     try:
         return matching_separators[ext]
-    except ValueError as exc:
+    except KeyError as exc:
         error_msg = f"Only accepted extensions are {matching_separators.keys()}. Got {ext}."
-        raise ValueError(error_msg) from exc
+        raise KeyError(error_msg) from exc
 
 
 @dataclasses.dataclass
