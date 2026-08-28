@@ -91,7 +91,7 @@ class LoganRefConfig(ModelConfig):
 
     def __call__(self,
                  reference_region: str,
-                 regional_tacs_path: str,
+                 tacs_path: str,
                  save_path: str,
                  k2_prime: float,
                  start_time: float,
@@ -102,7 +102,7 @@ class LoganRefConfig(ModelConfig):
         Args:
             
             reference_region (str): Label for the reference region in the TACs spreadsheet.
-            regional_tacs_path (str): Path to TACs spreadsheet.
+            tacs_path (str): Path to TACs spreadsheet.
             save_path (str): Path to where modeling parameters are saved.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
             start_time (np.ndarray): Time point (in minutes) to begin logan model integration.
@@ -110,7 +110,7 @@ class LoganRefConfig(ModelConfig):
                 600.
         """
         self.set_required_pars(k2_prime=k2_prime, start_time=start_time, end_time=end_time)
-        self.set_tacs_data(tacs_path=regional_tacs_path, reference_region=reference_region)
+        self.set_tacs_data(tacs_path=tacs_path, reference_region=reference_region)
         fit_results = self.fit_regions()
         self.table_saver.save(fit_results, save_path)
 
