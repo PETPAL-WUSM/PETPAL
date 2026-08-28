@@ -454,8 +454,7 @@ class WriteRegionalTacs:
                  segmentation_path: str | pathlib.Path,
                  label_map: str | dict,
                  out_tac_prefix: str,
-                 out_tac_dir: str | pathlib.Path,
-                 one_tsv_per_region: bool=False):
+                 out_tac_dir: str | pathlib.Path):
         """Runs TAC computation and writing by running `self.write_tacs`.
         
         Args:
@@ -468,9 +467,7 @@ class WriteRegionalTacs:
                 :class:`LabelMapLoader<petpal.meta.label_maps.LabelMapLoader>`.
             out_tac_prefix (str): Prefix for the output files, usually the BIDS subject and
                 session ID.
-            out_tac_dir (str | pathlib.Path): Output path where files are saved.
-            one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image. Default False."""
+            out_tac_dir (str | pathlib.Path): Output path where files are saved."""
         self.pet_arr = ants.image_read(filename=input_image_path).numpy()
         self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
 
@@ -482,7 +479,7 @@ class WriteRegionalTacs:
 
         self.write_tacs(out_tac_prefix=out_tac_prefix,
                         out_tac_dir=out_tac_dir,
-                        one_tsv_per_region=one_tsv_per_region)
+                        one_tsv_per_region=False)
 
 def main():
     auto_cli(WriteRegionalTacs)
