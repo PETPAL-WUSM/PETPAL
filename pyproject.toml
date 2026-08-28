@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "petpal"
-version = "0.6.7"
+version = "0.7.0"
 description = "PET-PAL (Positron Emission Tomography Processing and Analysis Library)"
 authors = [
     {name = "Noah Goldman", email = "noahg@wustl.edu"},
@@ -62,6 +62,12 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-moco = "petpal.preproc.motion_corr:main"
     petpal-target = "petpal.preproc.motion_target:main"
     petpal-register = "petpal.preproc.register:main"
+    petpal-logan-ref = "petpal.kinetic_modeling.logan_ref:main"
+    petpal-logan-ref-parametric = "petpal.kinetic_modeling.logan_ref_parametric:main"
+    petpal-tacs = "petpal.preproc.regional_tac_extraction:main"
+    petpal-merge-tacs = "petpal.preproc.merge_tacs_sheet:main"
+    petpal-mrtm2 = "petpal.kinetic_modeling.mrtm2:main"
+    petpal-mrtm2-parametric = "petpal.kinetic_modeling.mrtm2_parametric:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"

@@ -133,7 +133,7 @@ def linear_least_squares_fit_with_stats(xdata: np.ndarray,
 
     se_intercept = s*np.sqrt(1/n+np.mean(xdata)**2/sum_square_xdiff)
     se_slope = s*sum_square_xdiff**(-0.5)
-    return fit_ans[0][0], fit_ans[0][1], r_squared, se_intercept, se_slope
+    return fit_ans[0][0], fit_ans[0][1], r_squared, se_slope, se_intercept
 
 @numba.njit()
 def cumulative_trapezoidal_integral(xdata: np.ndarray,

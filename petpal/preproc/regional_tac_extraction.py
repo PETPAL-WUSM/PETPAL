@@ -15,6 +15,7 @@ from ..utils.scan_timing import ScanTimingInfo
 from ..utils.dimension import check_physical_space_for_ants_image_pair
 from ..utils.time_activity_curve import TimeActivityCurve
 from ..meta.label_maps import LabelMapLoader
+from ..meta.auto_cli import auto_cli
 
 def extract_roi_voxel_tacs_from_image_using_mask(input_image: ants.core.ANTsImage,
                                                  mask_image: ants.core.ANTsImage,
@@ -288,32 +289,20 @@ class WriteRegionalTacs:
 
     """
     def __init__(self,
-                 input_image_path: str | pathlib.Path,
-                 segmentation_path: str | pathlib.Path,
-                 label_map: str | dict,
                  tac_extraction_func: Callable=voxel_average_w_uncertainty):
         """Initialize WriteRegionalTacs.
         
         Args:
-            input_image_path (str | pathlib.Path): Path to input 4D PET image.
-            segmentation_path (str | pathlib.Path): Path to 3D discrete segmentation image. Must
-                match input PET image space.
-            label_map (str | dict): Label map for use in the study. Provide name of a preset
-                label map option such as 'freesurfer', the path to a label map JSON file, or a
-                Python dictionary with region mappings. For more details, see
-                :class:`LabelMapLoader<petpal.meta.label_maps.LabelMapLoader>`.
             tac_extraction_func (Callable): Function to get TAC from 2D array of voxels. Default
                 :func:`~petpal.preproc.regional_tac_extraction.voxel_average_w_uncertainty`.
         """
-        self.pet_arr = ants.image_read(filename=input_image_path).numpy()
-        self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
-
+        self.pet_arr: np.ndarray = None
+        self.seg_arr: np.ndarray = None
+        self.scan_timing: ScanTimingInfo = None
         self.tac_extraction_func = tac_extraction_func
-        self.scan_timing = ScanTimingInfo.from_nifti(input_image_path)
 
-        label_map_dict = LabelMapLoader(label_map_option=label_map).label_map
-        self.region_names = list(label_map_dict.keys())
-        self.region_maps = list(label_map_dict.values())
+        self.region_names: list = None
+        self.region_maps: list = None
 
     def set_tac_extraction_func(self, tac_extraction_func: Callable):
         """Sets the tac extraction function used to a different function.
@@ -361,13 +350,12 @@ class WriteRegionalTacs:
             return True
         return False
 
-    def extract_tac(self,region_mapping: int | list[int], **tac_calc_kwargs) -> TimeActivityCurve:
+    def extract_tac(self,region_mapping: int | list[int]) -> TimeActivityCurve:
         """
         Run self.tac_extraction_func on one region and return the TAC.
 
         Args:
             region_mapping (int | list[int]): The integer ID or IDs corresponding to the ROI.
-            **tac_calc_kwargs: Additional keyword arguments passed on to tac_extraction_func.
     
         Returns:
             region_tac (TimeActivityCurve): The calculated TAC for the region. 
@@ -384,8 +372,7 @@ class WriteRegionalTacs:
             extracted_tac.fill(np.nan)
             uncertainty = extracted_tac.copy()
         else:
-            extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region,
-                                                                  **tac_calc_kwargs)
+            extracted_tac, uncertainty = self.tac_extraction_func(pet_voxels=pet_masked_region)
         region_tac = TimeActivityCurve(times=self.scan_timing.center_in_mins,
                                        activity=extracted_tac,
                                        uncertainty=uncertainty)
@@ -418,8 +405,7 @@ class WriteRegionalTacs:
     def write_tacs(self,
                    out_tac_prefix: str,
                    out_tac_dir: str | pathlib.Path,
-                   one_tsv_per_region: bool=True,
-                   **tac_calc_kwargs):
+                   one_tsv_per_region: bool=False):
         """
         Function to write Tissue Activity Curves for each region, given a segmentation,
         4D PET image, and label map. Computes the average of the PET image within each
@@ -432,8 +418,7 @@ class WriteRegionalTacs:
                 session ID.
             out_tac_dir (str | pathlib.Path): Output path where files are saved.
             one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image.
-            **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func.
+                image. If False, write one TSV file with all TACs in the image. Default False.
 
         Raises:
             Warning: for each region without any matched voxels, warn user that TAC is skipped.
@@ -443,7 +428,7 @@ class WriteRegionalTacs:
         empty_regions = []
         for i,region_name in enumerate(self.region_names):
             mappings = self.region_maps[i]
-            tac = self.extract_tac(region_mapping=mappings, **tac_calc_kwargs)
+            tac = self.extract_tac(region_mapping=mappings)
             if tac.contains_any_nan:
                 empty_regions.append(region_name)
                 continue
@@ -465,20 +450,39 @@ class WriteRegionalTacs:
             tacs_data.to_csv(f'{out_tac_dir}/{out_tac_prefix}_multitacs.tsv', sep='\t', index=False)
 
     def __call__(self,
+                 input_image_path: str | pathlib.Path,
+                 segmentation_path: str | pathlib.Path,
+                 label_map: str | dict,
                  out_tac_prefix: str,
-                 out_tac_dir: str | pathlib.Path,
-                 one_tsv_per_region: bool=True,
-                 **tac_calc_kwargs):
+                 out_tac_dir: str | pathlib.Path):
         """Runs TAC computation and writing by running `self.write_tacs`.
         
         Args:
+            input_image_path (str | pathlib.Path): Path to input 4D PET image.
+            segmentation_path (str | pathlib.Path): Path to 3D discrete segmentation image. Must
+                match input PET image space.
+            label_map (str | dict): Label map for use in the study. Provide name of a preset
+                label map option such as 'freesurfer', the path to a label map JSON file, or a
+                Python dictionary with region mappings. For more details, see
+                :class:`LabelMapLoader<petpal.meta.label_maps.LabelMapLoader>`.
             out_tac_prefix (str): Prefix for the output files, usually the BIDS subject and
                 session ID.
-            out_tac_dir (str | pathlib.Path): Output path where files are saved.
-            one_tsv_per_region (bool): If True, write one TSV TAC file for each region in the
-                image. If False, write one TSV file with all TACs in the image.
-            **tac_calc_kwargs: Additional keywords passed onto tac_extraction_func."""
+            out_tac_dir (str | pathlib.Path): Output path where files are saved."""
+        self.pet_arr = ants.image_read(filename=input_image_path).numpy()
+        self.seg_arr = ants.image_read(filename=segmentation_path).numpy()
+
+        self.scan_timing = ScanTimingInfo.from_nifti(input_image_path)
+
+        label_map_dict = LabelMapLoader(label_map_option=label_map).label_map
+        self.region_names = list(label_map_dict.keys())
+        self.region_maps = list(label_map_dict.values())
+
         self.write_tacs(out_tac_prefix=out_tac_prefix,
                         out_tac_dir=out_tac_dir,
-                        one_tsv_per_region=one_tsv_per_region,
-                        **tac_calc_kwargs)
+                        one_tsv_per_region=False)
+
+def main():
+    auto_cli(WriteRegionalTacs)
+
+if __name__=='__main__':
+    main()
