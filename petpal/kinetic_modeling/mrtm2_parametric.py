@@ -39,6 +39,8 @@ class Mrtm2Parametric(Mrtm2Config, ParametricModel):
                                        tacs_path=tacs_path,
                                        reference_region=reference_region)
 
-
 def main():
     auto_cli(petpal_class=Mrtm2Parametric)
+
+if __name__=='__main__':
+    main()

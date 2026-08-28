@@ -66,6 +66,8 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-logan-ref-parametric = "petpal.kinetic_modeling.logan_ref_parametric:main"
     petpal-tacs = "petpal.preproc.regional_tac_extraction:main"
     petpal-merge-tacs = "petpal.preproc.merge_tacs_sheet:main"
+    petpal-mrtm2 = "petpal.kinetic_modeling.mrtm2:main"
+    petpal-mrtm2-parametric = "petpal.kinetic_modeling.mrtm2_parametric:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"
