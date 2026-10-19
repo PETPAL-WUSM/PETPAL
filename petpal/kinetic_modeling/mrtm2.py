@@ -60,7 +60,7 @@ def mrtm2_solver(times: np.ndarray,
         return np.asarray([np.nan, np.nan])
 
     end_index = get_index_from_threshold(times_in_minutes=times,
-                                         t_thresh_in_minutes=end_time)
+                                         t_thresh_in_minutes=end_time)+1
 
     x1 = cumulative_trapezoidal_integral(xdata=times, ydata=reference_activity, initial=0.0)
     x1 += reference_activity / k2_prime
