@@ -208,7 +208,7 @@ def get_index_from_threshold(times_in_minutes: np.ndarray, t_thresh_in_minutes: 
     if t_thresh_in_minutes > np.max(times_in_minutes):
         return -1
     else:
-        return np.argwhere(times_in_minutes >= t_thresh_in_minutes)[0, 0]
+        return np.argmin(np.abs(times_in_minutes - t_thresh_in_minutes))
 
 
 @numba.njit()
