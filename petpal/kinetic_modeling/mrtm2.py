@@ -66,7 +66,6 @@ def mrtm2_solver(times: np.ndarray,
     x1 += reference_activity / k2_prime
     x2 = cumulative_trapezoidal_integral(xdata=times, ydata=region_activity, initial=0.0)
 
-    
     y = region_activity[start_index:end_index]*weights[start_index:end_index]
     x_matrix = np.ones((len(y), 2), float)
     x_matrix[:,0] = x1[start_index:end_index]*weights[start_index:end_index]
