@@ -199,16 +199,9 @@ def get_index_from_threshold(times_in_minutes: np.ndarray, t_thresh_in_minutes: 
         t_thresh_in_minutes (float): Threshold time in minutes.
 
     Returns:
-        int: Index for first time greater than or equal to the threshold time.
-        
-    Notes:
-        If the threshold value is larger than the array, we return -1.
-        
+        int: Index for the frame closest to t_star.
     """
-    if t_thresh_in_minutes > np.max(times_in_minutes):
-        return -1
-    else:
-        return np.argmin(np.abs(times_in_minutes - t_thresh_in_minutes))
+    return np.argmin(np.abs(times_in_minutes - t_thresh_in_minutes))
 
 
 @numba.njit()
