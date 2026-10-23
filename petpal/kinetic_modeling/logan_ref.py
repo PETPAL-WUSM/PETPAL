@@ -47,7 +47,7 @@ def logan_ref_region_solver(times: np.ndarray,
                                            t_thresh_in_minutes=start_time)
 
     end_index = get_index_from_threshold(times_in_minutes=times[non_zero_indices],
-                                         t_thresh_in_minutes=end_time)
+                                         t_thresh_in_minutes=end_time) + 1
 
     if len(times[non_zero_indices][start_index:end_index]) <= 2:
         return np.nan, np.nan, np.nan, np.nan, np.nan
