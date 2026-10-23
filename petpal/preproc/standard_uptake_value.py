@@ -56,9 +56,8 @@ def weighted_sum_for_suv(input_image_path: str,
     scan_start = frame_start[0]
     nearest_frame = nearest_frame_to_timepoint(frame_times=frame_start)
     calc_first_frame = int(nearest_frame(start_time+scan_start))
-    calc_last_frame = int(nearest_frame(last_frame_time+scan_start))
-    if calc_first_frame==calc_last_frame:
-        calc_last_frame += 1
+    calc_last_frame = int(nearest_frame(last_frame_time+scan_start))+1
+    
     pet_series_adjusted = pet_img[:,:,:,calc_first_frame:calc_last_frame]
     frame_start_adjusted = frame_start[calc_first_frame:calc_last_frame]
     frame_duration_adjusted = frame_duration[calc_first_frame:calc_last_frame]
