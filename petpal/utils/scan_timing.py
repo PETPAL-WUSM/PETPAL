@@ -138,8 +138,9 @@ class ScanTimingInfo:
 
         .. important::
             This function tries to infer `FrameTimesEnd` and `FrameTimesStart` from the frame
-            durations if those keys are not present in the metadata file. If the scan is broken,
-            this might generate incorrect results.
+            durations if those keys are not present in the metadata file. If the first start frame
+            is greater than zero, frame starts are recalculated based on durations. If the scan is
+            broken, this might generate incorrect results.
 
 
         Args:
@@ -156,6 +157,8 @@ class ScanTimingInfo:
         frm_dur = np.asarray(metadata_dict['FrameDuration'], float)
         try:
             frm_starts = np.asarray(metadata_dict['FrameTimesStart'], float)
+            if frm_starts[0] > 0:
+                frm_starts = np.cumsum(frm_dur)-frm_dur
         except KeyError:
             frm_starts = np.cumsum(frm_dur)-frm_dur
         try:
