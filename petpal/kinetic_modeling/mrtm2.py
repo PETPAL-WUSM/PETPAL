@@ -60,12 +60,13 @@ def mrtm2_solver(times: np.ndarray,
         return np.asarray([np.nan, np.nan])
 
     end_index = get_index_from_threshold(times_in_minutes=times,
-                                         t_thresh_in_minutes=end_time)+1
+                                         t_thresh_in_minutes=end_time)
 
     x1 = cumulative_trapezoidal_integral(xdata=times, ydata=reference_activity, initial=0.0)
     x1 += reference_activity / k2_prime
     x2 = cumulative_trapezoidal_integral(xdata=times, ydata=region_activity, initial=0.0)
 
+    
     y = region_activity[start_index:end_index]*weights[start_index:end_index]
     x_matrix = np.ones((len(y), 2), float)
     x_matrix[:,0] = x1[start_index:end_index]*weights[start_index:end_index]
