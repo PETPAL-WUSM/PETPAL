@@ -1,4 +1,4 @@
-"""Solve MRTM2 regional analysis."""
+"""Solve MRTM regional analysis."""
 import numba
 import numpy as np
 
