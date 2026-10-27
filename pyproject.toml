@@ -69,6 +69,7 @@ classifiers = [  # These are added to PyPI package when published; Used for sear
     petpal-mrtm2 = "petpal.kinetic_modeling.mrtm2:main"
     petpal-mrtm2-parametric = "petpal.kinetic_modeling.mrtm2_parametric:main"
     petpal-mrtm = "petpal.kinetic_modeling.mrtm:main"
+    petpal-mrtm-parametric = "petpal.kinetic_modeling.mrtm_parametric:main"
 
 [project.urls]
     Repository = "https://github.com/PETPAL-WUSM/PETPAL.git"
