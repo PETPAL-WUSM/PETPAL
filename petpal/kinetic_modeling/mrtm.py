@@ -18,28 +18,26 @@ def mrtm_solver(times: np.ndarray,
                 start_time: float,
                 end_time: float=600,
                 uncertainty: np.ndarray=None):
-    r"""Solves MRTM2 kinetic model based on reference region activity and activity in a region of
+    r"""Solves MRTM kinetic model based on reference region activity and activity in a region of
     interest.
 
     .. important::
         This function assumes that both TACs are sampled at the same time, and that the time is in
         minutes.
-    
-    This method solves for coefficients :math:`-\frac{V}{V^{\prime}b}` and :math:`\frac{1}{b}`
+
+    This method solves for coefficients :math:`-\frac{V}{V^{\prime}b}`,
+    :math:`\frac{1}{b}`, :math:`-\frac{V}{V^{\prime}k_{2}^{\prime}b}`
     based on the multilinear regression model:
 
     .. math::
 
-        C(T) = -\frac{V}{V^{\prime}b}\left(\int_{0}^{T}C^{\prime}(t)\mathrm{d}t
-        -\frac{1}{k_{2}^{\prime}}C^{\prime}(T) \right)
-        + \frac{1}{b} \int_{0}^{T}C(t)\mathrm{d}t
+        C(T)=-\frac{V}{V^{\prime}b} \int_{0}^{T}C^{\prime}(t)\mathrm{d}t + \frac{1}{b}
+        \int_{0}^{T}C(t)\mathrm{d}t - \frac{V}{V^{\prime}k_{2}^{\prime}b}C^{\prime}(T)
 
     Args:
         reference_activity (np.ndarray): Activity in the reference region for each frame.
         region_activity (np.ndarrray): Activity in the region of interest for each frame. Units
             must match that of reference_activity.
-        k2_prime (float): Kinetic parameter k2 for the reference region. Typically estimated based
-            on an initial run of MRTM.
         start_time (float): Time measured in minutes from start of scan at which to begin model.
         end_time (float): Time measured in minutes from start of scan at which to end model.
             Default 600.
@@ -47,7 +45,8 @@ def mrtm_solver(times: np.ndarray,
 
     Returns:
         fit_ans (np.ndarray): Array of linear least square fits. Referred to in subsequent analysis
-            as Mrtm2Coefficient1 and Mrtm2Coefficient2 for use in file names and tables.
+            as MrtmCoefficient1, MrtmCoefficient2, and MrtmCoefficient3 for use in file names and
+            tables.
     """
     if uncertainty is None:
         weights = np.ones_like(times)
@@ -92,15 +91,15 @@ class MrtmConfig(ModelConfig):
     def run_model(self,
                   reference_tac: TimeActivityCurve,
                   region_tac: TimeActivityCurve):
-        """Run MRTM2 model on a single region.
-        
+        """Run MRTM model on a single region.
+
         Args:
             reference_tac (TimeActivityCurve): TAC for the reference region.
-            region_tac (TimeActivityCurve): TAC for the region to model with MRTM2.
-    
+            region_tac (TimeActivityCurve): TAC for the region to model with MRTM.
+
         Returns:
-            fit_result (list): List of fitted parameters output from MRTM2 solver with estimated
-                binding potential (BP) appended to the end."""
+            fit_result (list): List of fitted parameters output from MRTM solver with estimated
+                binding potential (BP) and k2_prime appended to the end."""
         fits = self.model_solver(times=reference_tac.times,
                                  reference_activity=reference_tac.activity,
                                  region_activity=region_tac.activity,
@@ -122,7 +121,6 @@ class MrtmConfig(ModelConfig):
         Fit all regions with MRTM2 kinetic model.
 
         Args:
-            
             reference_region (str): Label for the reference region in the TACs spreadsheet.
             tacs_path (str): Path to TACs spreadsheet.
             save_path (str): Path to where modeling parameters are saved.
