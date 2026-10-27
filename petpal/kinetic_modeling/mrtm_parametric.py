@@ -1,4 +1,4 @@
-"""Solve MRTM2 voxelwise analysis."""
+"""Solve MRTM voxelwise analysis."""
 from .kinetic_model_base import ParametricModel
 from ..meta.auto_cli import auto_cli
 from .mrtm import MrtmConfig
