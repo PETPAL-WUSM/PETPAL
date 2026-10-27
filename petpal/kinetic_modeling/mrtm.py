@@ -118,7 +118,7 @@ class MrtmConfig(ModelConfig):
                  start_time: float,
                  end_time: float=600):
         """
-        Fit all regions with MRTM2 kinetic model.
+        Fit all regions with MRTM kinetic model.
 
         Args:
             reference_region (str): Label for the reference region in the TACs spreadsheet.
