@@ -15,7 +15,8 @@ from ..meta.label_maps import LabelMapLoader
 from ..utils.dimension import check_physical_space_for_ants_image_pair
 from ..utils.scan_timing import ScanTimingInfo
 from ..utils.time_activity_curve import TimeActivityCurve
-from ..preproc.segmentation_tools import unique_segmentation_labels
+from .segmentation_tools import unique_segmentation_labels
+from .regional_tac_extraction import gen_tacs_data_frame
 
 class Sgtm:
     """Handle sGTM partial volume correction on provided PET images.
@@ -362,6 +363,13 @@ class Sgtm:
         sgtm_result_to_write['Mean'] = sgtm_result[1]
         sgtm_result_to_write.to_csv(out_tsv_path,sep='\t',index=False)
 
+    @property
+    def scan_timing(self):
+        if self.input_image.dimension==4:
+            return ScanTimingInfo.from_nifti(image_path=self.input_image_path)
+        else:
+            return None
+
     def save_results_4d_tacs(self,
                              sgtm_result: np.ndarray,
                              out_tac_dir: str,
@@ -376,8 +384,7 @@ class Sgtm:
             out_tac_prefix (str): Prefix of the TAC files.
         """
         os.makedirs(out_tac_dir, exist_ok=True)
-        input_image_path = self.input_image_path
-        tac_times = ScanTimingInfo.from_nifti(image_path=input_image_path).center_in_mins
+        tac_times = self.scan_timing.center_in_mins
 
         tac_array = np.asarray(sgtm_result).T
 
@@ -399,17 +406,9 @@ class Sgtm:
             out_tac_prefix (str): Prefix of the TAC files.
         """
         os.makedirs(out_tac_dir, exist_ok=True)
-        input_image_path = self.input_image_path
-        scan_timing = ScanTimingInfo.from_nifti(image_path=input_image_path)
-        tac_time_starts = scan_timing.start_in_mins
-        tac_time_ends = scan_timing.end_in_mins
-
+        tacs_data = gen_tacs_data_frame(region_names=self.unique_labels[1], scan_timing=self.scan_timing)
         tac_array = np.asarray(sgtm_result).T
-        tacs_data_columns = ['frame_start(min)','frame_end(min)']+self.unique_labels[1]
-        tacs_data = pd.DataFrame(columns=tacs_data_columns)
 
-        tacs_data['frame_start(min)'] = tac_time_starts
-        tacs_data['frame_end(min)'] = tac_time_ends
         for i, (_label, name) in enumerate(zip(*self.unique_labels)):
             tacs_data[name] = tac_array[i,:]
             tacs_data[f'{name}_unc'] = np.full(tac_array.shape[1],1)
