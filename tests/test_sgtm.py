@@ -7,7 +7,7 @@ class DummyImage:
 
 def make_sgtm_with_dimension(dim, sgtm_result=None):
     sgtm = object.__new__(Sgtm)
-    sgtm.input_image = DummyImage(dimension=dim)
+    sgtm.input_img = DummyImage(dimension=dim)
     sgtm.sgtm_result = sgtm_result
     return sgtm
 
