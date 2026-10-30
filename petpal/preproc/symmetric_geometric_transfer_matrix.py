@@ -12,6 +12,7 @@ import ants
 import pandas as pd
 
 from ..meta.label_maps import LabelMapLoader
+from ..meta.auto_cli import auto_cli
 from ..utils.dimension import check_physical_space_for_ants_image_pair
 from ..utils.scan_timing import ScanTimingInfo
 from ..utils.time_activity_curve import TimeActivityCurve
@@ -21,26 +22,8 @@ from .regional_tac_extraction import gen_tacs_data_frame
 class Sgtm:
     """Handle sGTM partial volume correction on provided PET images.
     """
-    def __init__(self,
-                 input_image_path: str,
-                 segmentation_image_path: str,
-                 fwhm: float | tuple[float, float, float],
-                 label_map_option: str | None = None,
-                 zeroth_roi: bool = False):
+    def __init__(self):
         r"""Initialize running sGTM
-
-        Args:
-            input_image_path (str): Path to input parametric image on which sGTM will be run.
-            segmentation_image_path (str): Path to segmentation image to which parametric image is
-                aligned which is used to delineate regions for PVC.
-            fwhm (float | tuple[float, float, float]): Full width at half maximum of the Gaussian 
-                blurring kernel for each dimension in mm. If only one number is provided, it is used for all dimensions.
-            label_map_option (Optional, str): Path to segmentation label map table,
-                to be read by :func:`~.read_label_map_tsv`, for segmentation labeling ROIs in the outputs.
-                Defaults to None.
-            zeroth_roi (bool): If False, ignores the zeroth ``0`` label in calculations, often used to
-                exclude background or non-ROI regions. Defaults to False.
-
 
         Example:
 
@@ -73,67 +56,13 @@ class Sgtm:
                 sgtm_4d_analysis(output_path="/path/to/output/directory/", out_tac_prefix='sub-001_ses-001_desc-sGTM')
 
         """
-        self.input_image_path = input_image_path
-        self.input_image = ants.image_read(input_image_path)
-        self.segmentation_image = ants.image_read(segmentation_image_path)
-        self.label_map_option = label_map_option
-        self.fwhm = fwhm
-        self.zeroth_roi = zeroth_roi
+        self.input_image_path = None
+        self.input_image = None
+        self.segmentation_image = None
+        self.label_map_option = None
+        self.fwhm = None
+        self.zeroth_roi = None
         self.sgtm_result = None
-
-    def run(self):
-        r"""Determine whether input image is 3D or 4D and run the correct sGTM method.
-
-        If input image is 3D, implied usage is getting the average sGTM value for each region in
-        the volume. If input image is 4D, implied usage is getting a time series average value for
-        each frame in image within each region.
-        """
-        if self.input_image.dimension == 3:
-            self.sgtm_result = self.run_sgtm_3d()
-
-        elif self.input_image.dimension == 4:
-            self.sgtm_result = self.run_sgtm_4d()
-
-    def save(self, output_path: str, out_tac_prefix: str | None = None, one_tsv_per_region: bool = False):
-        r"""Save sGTM results by writing the resulting array to one or more files.
-
-        The behavior depends on the input image provided. If input image is 3D, saves the average sGTM value for each
-        region in a TSV with one row per region. If input image is 4D, saves time series average values for each frame
-        within each region. 4D operation saves a single file unless `one_tsv_per_region` is set to True.
-
-        Args:
-            output_path (str): Path to save sGTM results. For 3D images, this should typically be
-                the full path to a .tsv file. For 4D images, this is the directory where the sGTM
-                TACs will be saved.
-            out_tac_prefix (Optional, str): Prefix of the TAC files. Typically, something like
-                ``'sub-001_ses-001_desc-sGTM'``. Defaults to None.
-            one_tsv_per_region (bool): If True, saves one tsv file for each unique region, as
-                opposed to one file containing all TACs if False. Default False.
-        """
-        if self.input_image.dimension == 3:
-            self.save_results_3d(sgtm_result=self.sgtm_result, out_tsv_path=output_path)
-        elif self.input_image.dimension == 4:
-            if one_tsv_per_region:
-                self.save_results_4d_tacs(sgtm_result=self.sgtm_result,
-                                          out_tac_dir=output_path,
-                                          out_tac_prefix=out_tac_prefix)
-            else:
-                self.save_results_4d_multitacs(sgtm_result=self.sgtm_result,
-                                               out_tac_dir=output_path,
-                                               out_tac_prefix=out_tac_prefix)
-
-    def __call__(self, output_path: str, out_tac_prefix: str | None = None):
-        r"""Run sGTM and save results.
-
-        Applies :meth:`run_sgtm` for 3D images and :meth:`run_sgtm_4d`
-        for 4D images.
-
-        Args:
-            output_path (str): Path to save sGTM results. For 3D images, this is a .tsv file. For
-                4D images, this is a directory.
-        """
-        self.run()
-        self.save(output_path=output_path, out_tac_prefix=out_tac_prefix)
 
     @property
     def sigma(self) -> list[float]:
@@ -162,7 +91,7 @@ class Sgtm:
             unique_segmentation_labels (tuple[np.ndarray, list[str]]): Tuple containing the unique ROI indices (mapping)
                 and inferred segmentation labels.
         """
-        if self.label_map_option is None:
+        if self.label_map_option=='sgtm':
             region_index_map = unique_segmentation_labels(segmentation_img=self.segmentation_image,
                                                           zeroth_roi=self.zeroth_roi)
             region_short_names = [f'UNK{i:05d}' for i in region_index_map]
@@ -396,8 +325,7 @@ class Sgtm:
 
     def save_results_4d_multitacs(self,
                                   sgtm_result: np.ndarray,
-                                  out_tac_dir: str,
-                                  out_tac_prefix: str):
+                                  out_sgtm_path: str):
         """Like :meth:`save_results_4d_tacs`, but saves all TACs to a single file.
 
         Args:
@@ -405,11 +333,93 @@ class Sgtm:
             out_tac_dir (str): Path to folder where regional TACs will be saved.
             out_tac_prefix (str): Prefix of the TAC files.
         """
-        os.makedirs(out_tac_dir, exist_ok=True)
         tacs_data = gen_tacs_data_frame(region_names=self.unique_labels[1], scan_timing=self.scan_timing)
         tac_array = np.asarray(sgtm_result).T
 
         for i, (_label, name) in enumerate(zip(*self.unique_labels)):
             tacs_data[name] = tac_array[i,:]
             tacs_data[f'{name}_unc'] = np.full(tac_array.shape[1],1)
-        tacs_data.to_csv(f'{out_tac_dir}/{out_tac_prefix}_multitacs.tsv', sep='\t', index=False)
+        tacs_data.to_csv(out_sgtm_path, sep='\t', index=False)
+
+    def run(self):
+        r"""Determine whether input image is 3D or 4D and run the correct sGTM method.
+
+        If input image is 3D, implied usage is getting the average sGTM value for each region in
+        the volume. If input image is 4D, implied usage is getting a time series average value for
+        each frame in image within each region.
+        """
+        if self.input_image.dimension == 3:
+            self.sgtm_result = self.run_sgtm_3d()
+
+        elif self.input_image.dimension == 4:
+            self.sgtm_result = self.run_sgtm_4d()
+
+    def save(self, out_sgtm_path: str):
+        r"""Save sGTM results by writing the resulting array to one or more files.
+
+        The behavior depends on the input image provided. If input image is 3D, saves the average sGTM value for each
+        region in a TSV with one row per region. If input image is 4D, saves time series average values for each frame
+        within each region. 4D operation saves a single file unless `one_tsv_per_region` is set to True.
+
+        Args:
+            output_path (str): Path to save sGTM results. For 3D images, this should typically be
+                the full path to a .tsv file. For 4D images, this is the directory where the sGTM
+                TACs will be saved.
+            out_tac_prefix (Optional, str): Prefix of the TAC files. Typically, something like
+                ``'sub-001_ses-001_desc-sGTM'``. Defaults to None.
+            one_tsv_per_region (bool): If True, saves one tsv file for each unique region, as
+                opposed to one file containing all TACs if False. Default False.
+        """
+        if self.input_image.dimension == 3:
+            self.save_results_3d(sgtm_result=self.sgtm_result, out_tsv_path=out_sgtm_path)
+        elif self.input_image.dimension == 4:
+            self.save_results_4d_multitacs(sgtm_result=self.sgtm_result,
+                                            out_sgtm_path=out_sgtm_path)
+
+    def __call__(self,
+                 input_image_path: str,
+                 segmentation_path: str,
+                 fwhm: float,
+                 out_sgtm_path: str,
+                 label_map: str='sgtm',
+                 zeroth_roi: bool=False):
+        r"""Run sGTM and save results.
+
+        Applies :meth:`run_sgtm` for 3D images and :meth:`run_sgtm_4d`
+        for 4D images.
+
+        Args:
+            input_image_path (str): Path to input parametric image on which sGTM will be run.
+            segmentation_image_path (str): Path to segmentation image to which parametric image is
+                aligned which is used to delineate regions for PVC.
+            fwhm (float | tuple[float, float, float]): Full width at half maximum of the Gaussian 
+                blurring kernel for each dimension in mm. If only one number is provided, it is used for all dimensions.
+            label_map_option (Optional, str): Path to segmentation label map table,
+                to be read by :func:`~.read_label_map_tsv`, for segmentation labeling ROIs in the outputs.
+                Defaults to None.
+            zeroth_roi (bool): If False, ignores the zeroth ``0`` label in calculations, often used to
+                exclude background or non-ROI regions. Defaults to False.
+
+        """
+        self.input_image_path = input_image_path
+        self.input_image = ants.image_read(input_image_path)
+        self.segmentation_image = ants.image_read(segmentation_path)
+        self.label_map_option = label_map
+        print(self.label_map_option)
+        self.fwhm = fwhm
+        self.zeroth_roi = zeroth_roi
+        print(zeroth_roi)
+        if zeroth_roi:
+            print('zeroth_roi true')
+        else:
+            print('zeroth_roi false')
+        self.sgtm_result = None
+        self.run()
+        self.save(out_sgtm_path=out_sgtm_path)
+
+def main():
+    auto_cli(Sgtm)
+
+if __name__=='__main__':
+    main()
+
