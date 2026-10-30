@@ -38,22 +38,23 @@ class Sgtm:
                 fwhm = (5.,5.,5.)
 
                 # initiate Sgtm class, run analysis, and save to an output TSV file.
-                sgtm_analysis = Sgtm(input_image_path=input_3d_image_path,
-                                     segmentation_image_path=segmentation_image_path,
-                                     fwhm=fwhm,
-                                     zeroth_roi = False)
-                sgtm_analysis(output_path="sub-001_ses-01_pvc-sGTM_desc-SUV_pet.tsv")
+                sgtm_analysis = Sgtm()
+                sgtm_analysis(input_image_path=input_3d_image_path,
+                              segmentation_image_path=segmentation_image_path,
+                              fwhm=fwhm,
+                              zeroth_roi = False,
+                              out_sgtm_path="sub-001_ses-01_pvc-sGTM_desc-SUV_pet.tsv")
 
                 # Do the same with a time series 4D image. This results in a TAC for each region in
                 # the segmentation file, that has been partial volume corrected with the sGTM
                 # method.
                 input_4d_image_path = "sub-001_ses-01_space-mpr_pet.nii.gz"
-                sgtm_4d_analysis = Sgtm(input_image_path=input_4d_image_path,
-                                        segmentation_image_path=segmentation_image_path,
-                                        fwhm=fwhm,
-                                        label_map_option=label_map_option,
-                                        zeroth_roi = False)
-                sgtm_4d_analysis(output_path="/path/to/output/directory/", out_tac_prefix='sub-001_ses-001_desc-sGTM')
+                sgtm_4d_analysis = Sgtm()
+                sgtm_4d_analysis(input_image_path=input_3d_image_path,
+                                 segmentation_image_path=segmentation_image_path,
+                                 fwhm=fwhm,
+                                 zeroth_roi = False,
+                                 out_sgtm_path="sub-001_ses-01_pvc-sGTM_desc-SUV_pet.tsv")
 
         """
         self.input_image_path = None
@@ -117,6 +118,25 @@ class Sgtm:
                     region_index_map.append(mapping)
                     region_short_names.append(f'UNK{mapping:05d}')
         return (region_index_map, region_short_names)
+
+    @staticmethod
+    def fwhm_to_float(fwhm: list[str]) -> float | list[float]:
+        """Convert the fwhm read by command line to a float or list of floats.
+
+        Args:
+            fwhm (list[str]): The fwhm as read in by command line
+
+        Returns:
+            fwhm_floats (float | list[float]): The fwhm as used by this class.
+
+        Raises:
+            ValueError: If the length of fwhm is not 1 or 3."""
+        if len(fwhm)==1:
+            return float(fwhm[0])
+        if len(fwhm)==3:
+            return [float(f) for f in fwhm]
+        raise ValueError("FWHM provided is not of length 1 or 3. Use a single value for all"
+                         f"dimensions, or specify different FWHM for x, y, z axis. Got {fwhm}.")
 
     @staticmethod
     def get_omega_matrix(voxel_by_roi_matrix: np.ndarray) -> np.ndarray:
@@ -282,7 +302,7 @@ class Sgtm:
 
         Args:
             sgtm_result (tuple): Output of :meth:`run_sgtm_3d`
-            out_sgtm_path (str): File path to which results are saved.
+            out_sgtm_path (str): Path to which sGTM data is written. Must be a .tsv file.
         """
         sgtm_result_to_write = pd.DataFrame(columns=['Region','Mean'])
         sgtm_result_to_write['Region'] = self.unique_labels[1]
@@ -303,8 +323,7 @@ class Sgtm:
 
         Args:
             sgtm_result (np.ndarray): Array of results from :meth:`run_sgtm_4d`
-            out_tac_dir (str): Path to folder where regional TACs will be saved.
-            out_tac_prefix (str): Prefix of the TAC files.
+            out_sgtm_path (str): Path to which TAC data is written. Must be a .tsv file.
         """
         tacs_data = gen_tacs_data_frame(region_names=self.unique_labels[1], scan_timing=self.scan_timing)
         tac_array = np.asarray(sgtm_result).T
@@ -332,16 +351,10 @@ class Sgtm:
 
         The behavior depends on the input image provided. If input image is 3D, saves the average sGTM value for each
         region in a TSV with one row per region. If input image is 4D, saves time series average values for each frame
-        within each region. 4D operation saves a single file unless `one_tsv_per_region` is set to True.
+        within each region.
 
         Args:
-            output_path (str): Path to save sGTM results. For 3D images, this should typically be
-                the full path to a .tsv file. For 4D images, this is the directory where the sGTM
-                TACs will be saved.
-            out_tac_prefix (Optional, str): Prefix of the TAC files. Typically, something like
-                ``'sub-001_ses-001_desc-sGTM'``. Defaults to None.
-            one_tsv_per_region (bool): If True, saves one tsv file for each unique region, as
-                opposed to one file containing all TACs if False. Default False.
+            out_sgtm_path (str): Path to which TAC data is written. Must be a .tsv file.
         """
         if self.input_img.dimension == 3:
             self.save_results_3d(sgtm_result=self.sgtm_result, out_sgtm_path=out_sgtm_path)
@@ -352,7 +365,7 @@ class Sgtm:
     def __call__(self,
                  input_image_path: str,
                  segmentation_path: str,
-                 fwhm: float,
+                 fwhm: list[float],
                  out_sgtm_path: str,
                  label_map: str='sgtm',
                  zeroth_roi: bool=False):
@@ -367,6 +380,7 @@ class Sgtm:
                 aligned which is used to delineate regions for PVC.
             fwhm (float | tuple[float, float, float]): Full width at half maximum of the Gaussian 
                 blurring kernel for each dimension in mm. If only one number is provided, it is used for all dimensions.
+            out_sgtm_path (str): Path to which TAC data is written. Must be a .tsv file.
             label_map_option (Optional, str): Path to segmentation label map table,
                 to be read by :func:`~.read_label_map_tsv`, for segmentation labeling ROIs in the outputs.
                 Defaults to None.
@@ -378,7 +392,7 @@ class Sgtm:
         self.input_img = ants.image_read(input_image_path)
         self.segmentation_img = ants.image_read(segmentation_path)
         self.label_map_option = label_map
-        self.fwhm = fwhm
+        self.fwhm = self.fwhm_to_float(fwhm=fwhm)
         self.zeroth_roi = zeroth_roi
         self.sgtm_result = None
         self.run()
