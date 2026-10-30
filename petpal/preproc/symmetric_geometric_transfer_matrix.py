@@ -57,8 +57,8 @@ class Sgtm:
 
         """
         self.input_image_path = None
-        self.input_image = None
-        self.segmentation_image = None
+        self.input_img = None
+        self.segmentation_img = None
         self.label_map_option = None
         self.fwhm = None
         self.zeroth_roi = None
@@ -73,7 +73,7 @@ class Sgtm:
                 corresponds to an axis: x, y, and z. Values are determined based on the FWHM input
                 to the object and the voxel dimension in the input image.
         """
-        resolution = self.segmentation_image.spacing
+        resolution = self.segmentation_img.spacing
         if isinstance(self.fwhm, (float, int)):
             sigma = [(self.fwhm / 2.355) / res for res in resolution]
         else:
@@ -92,7 +92,7 @@ class Sgtm:
                 and inferred segmentation labels.
         """
         if self.label_map_option=='sgtm':
-            region_index_map = unique_segmentation_labels(segmentation_img=self.segmentation_image,
+            region_index_map = unique_segmentation_labels(segmentation_img=self.segmentation_img,
                                                           zeroth_roi=self.zeroth_roi)
             region_short_names = [f'UNK{i:05d}' for i in region_index_map]
         else:
@@ -102,7 +102,7 @@ class Sgtm:
                           "segmentation to ensure this criteria is met, or use sGTM without "
                           "label map for automated complete region mapping.")
             seg_label_map = LabelMapLoader(label_map_option=self.label_map_option).label_map
-            unique_mappings = unique_segmentation_labels(segmentation_img=self.segmentation_image,
+            unique_mappings = unique_segmentation_labels(segmentation_img=self.segmentation_img,
                                                        zeroth_roi=self.zeroth_roi)
             region_index_map = []
             region_short_names = []
@@ -192,7 +192,7 @@ class Sgtm:
                     of the inversion.
 
         Raises:
-            AssertionError: If `self.input_image` and `self.segmentation_image` do not have the
+            AssertionError: If `self.input_img` and `self.segmentation_img` do not have the
                 same dimensions.
 
         Notes:
@@ -223,10 +223,10 @@ class Sgtm:
             This provides the estimated activity concentrations corrected for partial volume
             effects in each ROI.
         """
-        if self.input_image.shape != self.segmentation_image.shape:
+        if self.input_img.shape != self.segmentation_img.shape:
             raise AssertionError("PET and ROI images must be the same dimensions")
-        input_numpy = self.input_image.numpy()
-        segmentation_arr = self.segmentation_image.numpy()
+        input_numpy = self.input_img.numpy()
+        segmentation_arr = self.segmentation_img.numpy()
 
         unique_labels = self.unique_labels[0]
 
@@ -251,11 +251,11 @@ class Sgtm:
             frame_results (np.ndarray): Average activity in each region calculated with sGTM
                 for each frame.
         """
-        if not check_physical_space_for_ants_image_pair(self.input_image,
-                                                        self.segmentation_image):
+        if not check_physical_space_for_ants_image_pair(self.input_img,
+                                                        self.segmentation_img):
             raise AssertionError("PET and ROI images must be the same dimensions")
-        pet_frame_list = self.input_image.ndimage_to_list()
-        segmentation_arr = self.segmentation_image.numpy()
+        pet_frame_list = self.input_img.ndimage_to_list()
+        segmentation_arr = self.segmentation_img.numpy()
 
         unique_labels = self.unique_labels[0]
 
@@ -291,7 +291,7 @@ class Sgtm:
 
     @property
     def scan_timing(self):
-        if self.input_image.dimension==4:
+        if self.input_img.dimension==4:
             return ScanTimingInfo.from_nifti(image_path=self.input_image_path)
         else:
             return None
@@ -321,10 +321,10 @@ class Sgtm:
         the volume. If input image is 4D, implied usage is getting a time series average value for
         each frame in image within each region.
         """
-        if self.input_image.dimension == 3:
+        if self.input_img.dimension == 3:
             self.sgtm_result = self.run_sgtm_3d()
 
-        elif self.input_image.dimension == 4:
+        elif self.input_img.dimension == 4:
             self.sgtm_result = self.run_sgtm_4d()
 
     def save(self, out_sgtm_path: str):
@@ -343,9 +343,9 @@ class Sgtm:
             one_tsv_per_region (bool): If True, saves one tsv file for each unique region, as
                 opposed to one file containing all TACs if False. Default False.
         """
-        if self.input_image.dimension == 3:
+        if self.input_img.dimension == 3:
             self.save_results_3d(sgtm_result=self.sgtm_result, out_sgtm_path=out_sgtm_path)
-        elif self.input_image.dimension == 4:
+        elif self.input_img.dimension == 4:
             self.save_results_4d_multitacs(sgtm_result=self.sgtm_result,
                                             out_sgtm_path=out_sgtm_path)
 
@@ -375,8 +375,8 @@ class Sgtm:
 
         """
         self.input_image_path = input_image_path
-        self.input_image = ants.image_read(input_image_path)
-        self.segmentation_image = ants.image_read(segmentation_path)
+        self.input_img = ants.image_read(input_image_path)
+        self.segmentation_img = ants.image_read(segmentation_path)
         self.label_map_option = label_map
         self.fwhm = fwhm
         self.zeroth_roi = zeroth_roi
