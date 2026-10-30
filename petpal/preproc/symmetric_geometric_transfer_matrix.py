@@ -405,14 +405,8 @@ class Sgtm:
         self.input_image = ants.image_read(input_image_path)
         self.segmentation_image = ants.image_read(segmentation_path)
         self.label_map_option = label_map
-        print(self.label_map_option)
         self.fwhm = fwhm
         self.zeroth_roi = zeroth_roi
-        print(zeroth_roi)
-        if zeroth_roi:
-            print('zeroth_roi true')
-        else:
-            print('zeroth_roi false')
         self.sgtm_result = None
         self.run()
         self.save(out_sgtm_path=out_sgtm_path)
