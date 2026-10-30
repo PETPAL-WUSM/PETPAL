@@ -296,30 +296,6 @@ class Sgtm:
         else:
             return None
 
-    def save_results_4d_tacs(self,
-                             sgtm_result: np.ndarray,
-                             out_tac_dir: str,
-                             out_tac_prefix: str,):
-        r"""Saves the result of an sGTM calculation on a 4D PET series.
-
-        Result is saved as a TAC for each of the unique regions found in the segmentation image.
-
-        Args:
-            sgtm_result (np.ndarray): Array of results from :meth:`run_sgtm_4d`
-            out_tac_dir (str): Path to folder where regional TACs will be saved.
-            out_tac_prefix (str): Prefix of the TAC files.
-        """
-        os.makedirs(out_tac_dir, exist_ok=True)
-        tac_times = self.scan_timing.center_in_mins
-
-        tac_array = np.asarray(sgtm_result).T
-
-        for i, (_label, name) in enumerate(zip(*self.unique_labels)):
-            pvc_tac = TimeActivityCurve(times=tac_times,
-                                        activity=tac_array[i,:])
-            out_tac_path = os.path.join(f'{out_tac_dir}', f'{out_tac_prefix}_seg-{name}_tac.tsv')
-            pvc_tac.to_tsv(filename=out_tac_path)
-
     def save_results_4d_multitacs(self,
                                   sgtm_result: np.ndarray,
                                   out_sgtm_path: str):
