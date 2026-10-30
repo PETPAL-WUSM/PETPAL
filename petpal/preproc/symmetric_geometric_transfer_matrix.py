@@ -118,7 +118,6 @@ class Sgtm:
                     region_short_names.append(f'UNK{mapping:05d}')
         return (region_index_map, region_short_names)
 
-
     @staticmethod
     def get_omega_matrix(voxel_by_roi_matrix: np.ndarray) -> np.ndarray:
         r"""Get the Omega matrix for sGTM. See :meth:`run_sgtm` for details.
@@ -132,7 +131,6 @@ class Sgtm:
         """
         omega = voxel_by_roi_matrix.T @ voxel_by_roi_matrix
         return omega
-
 
     @staticmethod
     def solve_sgtm(omega: np.ndarray,
@@ -151,7 +149,6 @@ class Sgtm:
         condition_number = np.linalg.cond(omega)
 
         return t_corrected, condition_number
-
 
     @staticmethod
     def get_voxel_by_roi_matrix(unique_labels: np.ndarray,
@@ -416,4 +413,3 @@ def main():
 
 if __name__=='__main__':
     main()
-
