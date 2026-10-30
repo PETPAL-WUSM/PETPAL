@@ -199,6 +199,8 @@ def auto_cli(petpal_class: object):
             required = True
             if arg_default is not None:
                 required = False
+            if arg_default=='False':
+                arg_default = False
             if nargs==1:
                 parser.add_argument(arg_name,type=arg_type,required=required,default=arg_default)
             else:
