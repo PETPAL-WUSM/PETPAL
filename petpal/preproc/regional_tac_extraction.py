@@ -17,6 +17,28 @@ from ..utils.time_activity_curve import TimeActivityCurve
 from ..meta.label_maps import LabelMapLoader
 from ..meta.auto_cli import auto_cli
 
+def gen_tacs_data_frame(region_names: list, scan_timing: ScanTimingInfo) -> pd.DataFrame:
+    """Get empty data frame to store TACs. Sets first two columns to frame start and end
+    times, and remaining columns are named by region activity and uncertainty, based on the
+    regions included in the label map.
+    
+    Returns:
+        tacs_data (pd.DataFrame): Data frame with columns set for frame start and end time,
+        and activity and uncertainty for each included region. Frame start and end time
+        columns filled with scan timing data.
+    """
+    activity_uncertainty_column_names = []
+    for region_name in region_names:
+        activity_uncertainty_column_names.append(region_name)
+        activity_uncertainty_column_names.append(f'{region_name}_unc')
+    cols_list = ['frame_start(min)','frame_end(min)'] + activity_uncertainty_column_names
+    tacs_data = pd.DataFrame(columns=cols_list)
+
+    tacs_data['frame_start(min)'] = scan_timing.start_in_mins
+    tacs_data['frame_end(min)'] = scan_timing.end_in_mins
+
+    return tacs_data
+
 def extract_roi_voxel_tacs_from_image_using_mask(input_image: ants.core.ANTsImage,
                                                  mask_image: ants.core.ANTsImage,
                                                  verbose: bool = False) -> np.ndarray:
@@ -378,30 +400,6 @@ class WriteRegionalTacs:
                                        uncertainty=uncertainty)
         return region_tac
 
-    def gen_tacs_data_frame(self) -> pd.DataFrame:
-        """Get empty data frame to store TACs. Sets first two columns to frame start and end
-        times, and remaining columns are named by region activity and uncertainty, based on the
-        regions included in the label map.
-        
-        Returns:
-            tacs_data (pd.DataFrame): Data frame with columns set for frame start and end time,
-            and activity and uncertainty for each included region. Frame start and end time
-            columns filled with scan timing data.
-        """
-        activity_uncertainty_column_names = []
-        for region_name in self.region_names:
-            activity_uncertainty_column_names.append(region_name)
-            activity_uncertainty_column_names.append(f'{region_name}_unc')
-        cols_list = ['frame_start(min)','frame_end(min)'] + activity_uncertainty_column_names
-        tacs_data = pd.DataFrame(columns=cols_list)
-
-        tacs_data['frame_start(min)'] = self.scan_timing.start_in_mins
-        tacs_data['frame_end(min)'] = self.scan_timing.end_in_mins
-
-        return tacs_data
-
-
-
     def write_tacs(self,
                    out_tac_prefix: str,
                    out_tac_dir: str | pathlib.Path,
@@ -423,7 +421,8 @@ class WriteRegionalTacs:
         Raises:
             Warning: for each region without any matched voxels, warn user that TAC is skipped.
         """
-        tacs_data = self.gen_tacs_data_frame()
+        tacs_data = gen_tacs_data_frame(region_names=self.region_names,
+                                        scan_timing=self.scan_timing)
 
         empty_regions = []
         for i,region_name in enumerate(self.region_names):
