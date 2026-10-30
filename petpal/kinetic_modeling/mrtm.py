@@ -1,0 +1,141 @@
+"""Solve MRTM regional analysis."""
+import numba
+import numpy as np
+
+from petpal.kinetic_modeling.graphical_analysis import (cumulative_trapezoidal_integral,
+                                                        get_index_from_threshold)
+from petpal.utils.time_activity_curve import TimeActivityCurve
+from petpal.kinetic_modeling.kinetic_model_base import ModelConfig
+from petpal.meta.auto_cli import auto_cli
+from petpal.kinetic_modeling.reference_tissue_models import (calc_bp_from_mrtm_2003_fit,
+                                                             calc_k2prime_from_mrtm_2003_fit)
+
+
+@numba.njit(fastmath=True)
+def mrtm_solver(times: np.ndarray,
+                reference_activity: np.ndarray,
+                region_activity: np.ndarray,
+                start_time: float,
+                end_time: float=600,
+                uncertainty: np.ndarray=None):
+    r"""Solves MRTM kinetic model based on reference region activity and activity in a region of
+    interest.
+
+    .. important::
+        This function assumes that both TACs are sampled at the same time, and that the time is in
+        minutes.
+
+    This method solves for coefficients :math:`-\frac{V}{V^{\prime}b}`,
+    :math:`\frac{1}{b}`, :math:`-\frac{V}{V^{\prime}k_{2}^{\prime}b}`
+    based on the multilinear regression model:
+
+    .. math::
+
+        C(T)=-\frac{V}{V^{\prime}b} \int_{0}^{T}C^{\prime}(t)\mathrm{d}t + \frac{1}{b}
+        \int_{0}^{T}C(t)\mathrm{d}t - \frac{V}{V^{\prime}k_{2}^{\prime}b}C^{\prime}(T)
+
+    Args:
+        reference_activity (np.ndarray): Activity in the reference region for each frame.
+        region_activity (np.ndarrray): Activity in the region of interest for each frame. Units
+            must match that of reference_activity.
+        start_time (float): Time measured in minutes from start of scan at which to begin model.
+        end_time (float): Time measured in minutes from start of scan at which to end model.
+            Default 600.
+        uncertainty (float): Uncertainty for each frame in the PET scan. Not yet implemented.
+
+    Returns:
+        fit_ans (np.ndarray): Array of linear least square fits. Referred to in subsequent analysis
+            as MrtmCoefficient1, MrtmCoefficient2, and MrtmCoefficient3 for use in file names and
+            tables.
+    """
+    if uncertainty is None:
+        weights = np.ones_like(times)
+    else:
+        weights = np.ones_like(times) # TODO: effective calculation of frame weights
+
+    start_index = get_index_from_threshold(times_in_minutes=times,
+                                           t_thresh_in_minutes=start_time)
+    if start_index == -1:
+        return np.asarray([np.nan, np.nan])
+
+    end_index = get_index_from_threshold(times_in_minutes=times,
+                                         t_thresh_in_minutes=end_time)+1
+
+    x1 = cumulative_trapezoidal_integral(xdata=times, ydata=reference_activity, initial=0.0)
+    x2 = cumulative_trapezoidal_integral(xdata=times, ydata=region_activity, initial=0.0)
+    x3 = reference_activity * weights
+
+    y = region_activity[start_index:end_index]*weights[start_index:end_index]
+    x_matrix = np.ones((len(y), 3), float)
+    x_matrix[:,0] = x1[start_index:end_index]*weights[start_index:end_index]
+    x_matrix[:,1] = x2[start_index:end_index]*weights[start_index:end_index]
+    x_matrix[:,2] = x3[start_index:end_index]*weights[start_index:end_index]
+
+    fit_ans = np.linalg.lstsq(x_matrix, y)[0]
+    return fit_ans
+
+
+class MrtmConfig(ModelConfig):
+    """Config settings for MRTM. Initialize and call class to run model on all regions."""
+    def __init__(self):
+        super().__init__(model_name="Mrtm",
+                         model_solver=mrtm_solver,
+                         required_pars=["start_time","end_time"],
+                         fitted_pars=["MrtmCoefficient1",
+                                      "MrtmCoefficient2",
+                                      "MrtmCoefficient3",
+                                      "BP",
+                                      "k2_prime"])
+
+
+    def run_model(self,
+                  reference_tac: TimeActivityCurve,
+                  region_tac: TimeActivityCurve):
+        """Run MRTM model on a single region.
+
+        Args:
+            reference_tac (TimeActivityCurve): TAC for the reference region.
+            region_tac (TimeActivityCurve): TAC for the region to model with MRTM.
+
+        Returns:
+            fit_result (list): List of fitted parameters output from MRTM solver with estimated
+                binding potential (BP) and k2_prime appended to the end."""
+        fits = self.model_solver(times=reference_tac.times,
+                                 reference_activity=reference_tac.activity,
+                                 region_activity=region_tac.activity,
+                                 start_time=self.model_pars.start_time,
+                                 end_time=self.model_pars.end_time,
+                                 uncertainty=region_tac.uncertainty)
+        bp = calc_bp_from_mrtm_2003_fit(fits)
+        k2_prime = calc_k2prime_from_mrtm_2003_fit(fits)
+        fit_result = [*fits, bp, k2_prime]
+        return fit_result
+
+    def __call__(self,
+                 reference_region: str,
+                 tacs_path: str,
+                 save_path: str,
+                 start_time: float,
+                 end_time: float=600):
+        """
+        Fit all regions with MRTM kinetic model.
+
+        Args:
+            reference_region (str): Label for the reference region in the TACs spreadsheet.
+            tacs_path (str): Path to TACs spreadsheet.
+            save_path (str): Path to where modeling parameters are saved.
+            start_time (np.ndarray): Time point (in minutes) to begin MRTM model integration.
+            end_time (np.ndarray): Time point (in minutes) to end MRTM model integration. Default
+                600.
+        """
+        self.set_required_pars(start_time=start_time, end_time=end_time)
+        self.set_tacs_data(tacs_path=tacs_path, reference_region=reference_region)
+        fit_results = self.fit_regions()
+        self.table_saver.save(fit_results, save_path)
+
+
+def main():
+    auto_cli(petpal_class=MrtmConfig)
+
+if __name__=='__main__':
+    main()

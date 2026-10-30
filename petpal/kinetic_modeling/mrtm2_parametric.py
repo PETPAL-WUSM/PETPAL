@@ -18,7 +18,7 @@ class Mrtm2Parametric(Mrtm2Config, ParametricModel):
         Fit all voxels in PET image with MRTM2 kinetic model.
 
         Args:
-            input_image_path (str): Path to dynamic PET image on which Logan ref is used to model
+            input_image_path (str): Path to dynamic PET image on which MRTM2 is used to model
                 activity on each voxel.
             out_image_prefix (str): Directory and filename prefix for output images. Ensure to
                 include the destination folder as well as the prefix. One image is written for each
@@ -28,8 +28,8 @@ class Mrtm2Parametric(Mrtm2Config, ParametricModel):
             tacs_path (str): Path to TACS spreadsheet including the reference region TAC.
             reference_region (str): Label for the reference region in the TACs spreadsheet.
             k2_prime (str): Average k2 value for the reference region, usually tracer-dependent.
-            start_time (np.ndarray): Time point (in minutes) to begin logan model integration.
-            end_time (np.ndarray): Time point (in minutes) to end logan model integration. Default
+            start_time (np.ndarray): Time point (in minutes) to begin MRTM2 model integration.
+            end_time (np.ndarray): Time point (in minutes) to end MRTM2 model integration. Default
                 600.
         """
         self.set_required_pars(k2_prime=k2_prime, start_time=start_time, end_time=end_time)
