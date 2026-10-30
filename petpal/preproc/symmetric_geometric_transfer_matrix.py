@@ -274,7 +274,7 @@ class Sgtm:
 
         return np.asarray(frame_results)
 
-    def save_results_3d(self, sgtm_result: tuple, out_tsv_path: str):
+    def save_results_3d(self, sgtm_result: tuple, out_sgtm_path: str):
         r"""Saves the result of an sGTM calculation.
 
         Result is saved as one value for each of the unique regions found in the segmentation
@@ -282,12 +282,12 @@ class Sgtm:
 
         Args:
             sgtm_result (tuple): Output of :meth:`run_sgtm_3d`
-            out_tsv_path (str): File path to which results are saved.
+            out_sgtm_path (str): File path to which results are saved.
         """
         sgtm_result_to_write = pd.DataFrame(columns=['Region','Mean'])
         sgtm_result_to_write['Region'] = self.unique_labels[1]
         sgtm_result_to_write['Mean'] = sgtm_result[1]
-        sgtm_result_to_write.to_csv(out_tsv_path,sep='\t',index=False)
+        sgtm_result_to_write.to_csv(out_sgtm_path,sep='\t',index=False)
 
     @property
     def scan_timing(self):
@@ -368,7 +368,7 @@ class Sgtm:
                 opposed to one file containing all TACs if False. Default False.
         """
         if self.input_image.dimension == 3:
-            self.save_results_3d(sgtm_result=self.sgtm_result, out_tsv_path=out_sgtm_path)
+            self.save_results_3d(sgtm_result=self.sgtm_result, out_sgtm_path=out_sgtm_path)
         elif self.input_image.dimension == 4:
             self.save_results_4d_multitacs(sgtm_result=self.sgtm_result,
                                             out_sgtm_path=out_sgtm_path)
